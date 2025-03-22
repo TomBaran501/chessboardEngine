@@ -1,11 +1,11 @@
 # Définition des variables
 CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude
+CFLAGS = -Wall -Wextra -Iinclude -Ilib
 SRC_DIR = src
 OBJ_DIR = build
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 OBJ_FILES = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
-EXEC = mon_programme
+EXEC = chessboardengine
 
 # Règle principale : compilation de l'exécutable
 all: $(EXEC)

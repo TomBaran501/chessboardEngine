@@ -1,8 +1,13 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "chessboard.h"
+
+#include "stdlib.h"
 
 int main()
 {
-    printf("Hello world!\n");
-    return 0;
+    
+    Chessboard *chessboard = malloc(sizeof(Chessboard));;
+    init_chessboard(chessboard);
+    print_chessboard(chessboard);
+    free(chessboard);
+
 }
