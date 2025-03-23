@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 // Définition de la structure Chessboard
 typedef struct
 {

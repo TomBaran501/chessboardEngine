@@ -7,10 +7,11 @@
 
 int main()
 {
-    init_king_masks();
-    print_bitboard(masks_king_moves[19]);
-    print_bitboard(masks_king_moves[3]);
-    print_bitboard(masks_king_moves[56]);
-    print_bitboard(masks_king_moves[15]);
-
+    init_pawn_capture_masks();
+    print_bitboard(masks_pawn_captures[0][16]);
+    print_bitboard(masks_pawn_captures[1][16]);
+    print_bitboard(masks_pawn_captures[0][36]);
+    print_bitboard(masks_pawn_captures[1][36]);
+    print_bitboard(masks_pawn_captures[0][7]);
+    print_bitboard(masks_pawn_captures[0][7]);
 }
