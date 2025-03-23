@@ -2,6 +2,7 @@
 
 uint64_t masks_king_moves[64];
 uint64_t masks_pawn_captures[2][64];
+uint64_t masks_pawn_moves[2][64];
 
 void init_king_masks()
 {
@@ -45,5 +46,24 @@ void init_pawn_capture_masks()
 
         masks_pawn_captures[WHITE][num_case] = bitmask_white;
         masks_pawn_captures[BLACK][num_case] = bitmask_black;
+    }
+}
+
+void init_pawn_moves_masks()
+{
+    uint64_t bitmask_white;
+    uint64_t bitmask_black;
+    for (int num_case = 8; num_case < 56; num_case++)
+    {
+        bitmask_white = 0;
+        bitmask_white |= create_1bit_board(num_case - 8);
+        bitmask_white |= (num_case / 8 == 6) ? create_1bit_board(num_case - 16) : 0;
+
+        bitmask_black = 0;
+        bitmask_black |= create_1bit_board(num_case + 8);
+        bitmask_black |= (num_case / 8 == 1) ? create_1bit_board(num_case + 16) : 0;
+
+        masks_pawn_moves[WHITE][num_case] = bitmask_white;
+        masks_pawn_moves[BLACK][num_case] = bitmask_black;
     }
 }

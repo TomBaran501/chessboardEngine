@@ -7,11 +7,11 @@
 
 int main()
 {
-    init_pawn_capture_masks();
-    print_bitboard(masks_pawn_captures[0][16]);
-    print_bitboard(masks_pawn_captures[1][16]);
-    print_bitboard(masks_pawn_captures[0][36]);
-    print_bitboard(masks_pawn_captures[1][36]);
-    print_bitboard(masks_pawn_captures[0][7]);
-    print_bitboard(masks_pawn_captures[0][7]);
+    init_pawn_moves_masks();
+    print_bitboard(masks_pawn_moves[0][15]);
+    print_bitboard(masks_pawn_moves[1][15]);
+    print_bitboard(masks_pawn_moves[0][36]);
+    print_bitboard(masks_pawn_moves[1][36]);
+    print_bitboard(masks_pawn_moves[0][7]);
+    print_bitboard(masks_pawn_moves[1][7]);
 }
