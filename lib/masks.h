@@ -6,8 +6,10 @@
 
 #define BLACK 1
 #define WHITE 0
+#define BOARD_SIZE 64
 
 extern uint64_t masks_king_moves[64];
+extern uint64_t masks_knight_moves[64];
 extern uint64_t masks_pawn_captures[2][64];
 extern uint64_t masks_pawn_moves[2][64];
 
@@ -19,5 +21,6 @@ void init_bitboards();
 void init_king_masks();
 void init_pawn_capture_masks();
 void init_pawn_moves_masks();
+void init_knight_masks();
 
 #endif

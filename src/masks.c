@@ -1,13 +1,14 @@
 #include "masks.h"
 
-uint64_t masks_king_moves[64];
-uint64_t masks_pawn_captures[2][64];
-uint64_t masks_pawn_moves[2][64];
+uint64_t masks_king_moves[BOARD_SIZE];
+uint64_t masks_knight_moves[64];
+uint64_t masks_pawn_captures[2][BOARD_SIZE];
+uint64_t masks_pawn_moves[2][BOARD_SIZE];
 
 void init_king_masks()
 {
     uint64_t bitmask;
-    for (int num_case = 0; num_case < 64; num_case++)
+    for (int num_case = 0; num_case < BOARD_SIZE; num_case++)
     {
         bitmask = 0;
         if (num_case % 8 != 0)
@@ -65,5 +66,37 @@ void init_pawn_moves_masks()
 
         masks_pawn_moves[WHITE][num_case] = bitmask_white;
         masks_pawn_moves[BLACK][num_case] = bitmask_black;
+    }
+}
+
+void init_knight_masks()
+{
+    uint64_t bitmask;
+    for (int num_case = 0; num_case < BOARD_SIZE; num_case++)
+    {
+        bitmask = 0;
+
+        if (num_case % 8 > 1)
+        {
+            bitmask |= (num_case < 56) ? create_1bit_board(num_case + 6) : 0;
+            bitmask |= (num_case > 7) ? create_1bit_board(num_case - 10) : 0;
+        }
+        if (num_case % 8 > 0)
+        {
+            bitmask |= (num_case < 48) ? create_1bit_board(num_case + 15) : 0;
+            bitmask |= (num_case > 15) ? create_1bit_board(num_case - 17) : 0;
+        }
+        if (num_case % 8 < 7)
+        {
+            bitmask |= (num_case < 48) ? create_1bit_board(num_case + 17) : 0;
+            bitmask |= (num_case > 15) ? create_1bit_board(num_case - 15) : 0;
+        }
+        if (num_case % 8 < 6)
+        {
+            bitmask |= (num_case < 56) ? create_1bit_board(num_case + 10) : 0;
+            bitmask |= (num_case > 7) ? create_1bit_board(num_case - 6) : 0;
+        }
+
+        masks_knight_moves[num_case] = bitmask;
     }
 }
