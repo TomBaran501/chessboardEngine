@@ -1,18 +1,14 @@
 #include "bitboard.h"
 
+unsigned int state = 1884258747;
+
 uint64_t create_1bit_board(int exp)
 {
-    uint64_t base = 2;
-    long long result = 1;
-    while (exp > 0)
-    {
-        if (exp % 2 == 1)
-            result *= base;
+    return (1ULL << exp);
+}
 
-        base *= base;
-        exp /= 2;
-    }
-    return result;
+uint64_t set_bit(uint64_t bitboard, int square) {
+    return bitboard | (1ULL << square);
 }
 
 void print_bitboard(uint64_t bitboard)
@@ -27,4 +23,32 @@ void print_bitboard(uint64_t bitboard)
         printf("\n");
     }
     printf("\n");
+}
+
+uint64_t pop_bit(uint64_t bb) {
+    if (bb == 0) return -1; 
+    bb &= bb - 1;
+    return bb;
+}
+
+unsigned int get_random_number()
+{
+    unsigned int num = state;
+    num ^= num << 13;
+    num ^= num >> 17;
+    num ^= num << 5;
+    state = num;
+    return num;
+}
+
+uint64_t get_random_bitboard()
+{
+    uint64_t n1, n2, n3, n4;
+
+    n1 = (uint64_t) (get_random_number() & 0xFFFF);
+    n2 = (uint64_t) (get_random_number() & 0xFFFF);
+    n3 = (uint64_t) (get_random_number() & 0xFFFF);
+    n4 = (uint64_t) (get_random_number() & 0xFFFF);
+
+    return n1 | (n2 << 16) | (n2 << 16) | (n3 << 32) | (n4 << 48);
 }

@@ -7,11 +7,8 @@
 
 int main()
 {
-    init_knight_masks();
-    print_bitboard(masks_knight_moves[63]);
-    print_bitboard(masks_knight_moves[19]);
-    print_bitboard(masks_knight_moves[26]);
-    print_bitboard(masks_knight_moves[36]);
-    print_bitboard(masks_knight_moves[48]);
-    print_bitboard(masks_knight_moves[59]);
+    init_bitboards();
+    int64_t occ= create_1bit_board(9);
+    print_bitboard(get_bishop_attacks(0,occ));
+    return 0;
 }

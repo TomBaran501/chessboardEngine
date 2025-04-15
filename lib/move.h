@@ -12,7 +12,6 @@ typedef struct
     uint16_t flag : 4; // 4 bits pour les types spéciaux de mouvements
 } Move;
 
-
 void initialise_empty_move(Move *move);
 
 /// @brief Prints the parameter move
