@@ -2,13 +2,20 @@
 #include "bitboard.h"
 #include "masks.h"
 #include "move.h"
+#include "chessboardcontroller.h"
 
 #include "stdlib.h"
 
 int main()
 {
     init_bitboards();
-    int64_t occ= create_1bit_board(9);
-    print_bitboard(get_bishop_attacks(0,occ));
+    Chessboard c;
+    MoveList *moves = createMoveList(5);
+    init_chessboard(&c);
+    moves = getlegalmoves(1, &c);
+    for (int i = 0; i < moves -> count; i++){
+         Move m = getMove(moves,i);
+        print_move(&m);
+    }
     return 0;
 }

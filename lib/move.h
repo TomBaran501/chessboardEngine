@@ -12,7 +12,15 @@ typedef struct
     uint16_t flag : 4; // 4 bits pour les types spéciaux de mouvements
 } Move;
 
+/// @brief permet d'initialiser un coup avec toutes les valeurs à 0
+/// @param move
 void initialise_empty_move(Move *move);
+
+/// @brief permet d'initialiser un coup avec une valeur pour la position de départ et d'arriver de la piece qui bouge.
+/// @param move le coup initialisé
+/// @param from case de départ
+/// @param to case d'arrivée
+void initialise_move(Move *move, int from, int to);
 
 /// @brief Prints the parameter move
 /// @param move

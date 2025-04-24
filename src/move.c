@@ -2,16 +2,23 @@
 
 #include <stdio.h>
 
+void initialise_empty_move(Move *move)
+{
+    move->flag = 0;
+    move->from = 0;
+    move->to = 0;
+}
 
-void initialise_empty_move(Move *move){
-    move -> flag = 0;
-    move -> from = 0;
-    move -> to = 0;
+void initialise_move(Move *move, int from, int to)
+{
+    move->flag = 0;
+    move->from = from;
+    move->to = to;
 }
 
 void print_move(Move *move)
 {
-    printf("Move from %d to %d with flag %d\n", move -> from, move -> to, move -> flag);
+    printf("Move from %d to %d with flag %d\n", move->from, move->to, move->flag);
 }
 
 bool get_long_castle(Move move)
@@ -22,11 +29,11 @@ void set_long_castle(Move *move, bool value)
 {
     if (value)
     {
-        move -> flag |= 1;
+        move->flag |= 1;
     }
     else
     {
-        move -> flag &= ~1;
+        move->flag &= ~1;
     }
 }
 
@@ -38,11 +45,11 @@ void set_short_castle(Move *move, bool value)
 {
     if (value)
     {
-        move -> flag |= (1 << 1);
+        move->flag |= (1 << 1);
     }
     else
     {
-        move -> flag &= ~(1 << 1);
+        move->flag &= ~(1 << 1);
     }
 }
 
@@ -54,11 +61,11 @@ void set_pawn_advanced2(Move *move, bool value)
 {
     if (value)
     {
-        move -> flag |= (1 << 2);
+        move->flag |= (1 << 2);
     }
     else
     {
-        move -> flag &= ~(1 << 2);
+        move->flag &= ~(1 << 2);
     }
 }
 
@@ -70,10 +77,10 @@ void set_promotion(Move *move, bool value)
 {
     if (value)
     {
-        move -> flag |= (1 << 3);
+        move->flag |= (1 << 3);
     }
     else
     {
-        move -> flag &= ~(1 << 3);
+        move->flag &= ~(1 << 3);
     }
 }

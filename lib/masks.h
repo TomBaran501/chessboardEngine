@@ -17,6 +17,11 @@ extern uint64_t masks_pawn_moves[2][64];
 /// pour tout les coups possibles pour toutes les pieces. Ces coups sont stockés sous forme de bitboards
 /// en tant que variable globale.
 void init_bitboards();
+
+/// @brief permet de récupérer les attaques possibles pour un fou grâce au tables de magic bitboards
+/// @param square le numéro de la case du fou
+/// @param occupancy les pieces de l'échequier
+/// @return 
 uint64_t get_bishop_attacks(int square, uint64_t occupancy);
 uint64_t get_rook_attacks(int square, uint64_t occupancy);
 
