@@ -1,0 +1,5 @@
+# Ignorer le dossier de configuration de VS Code
+.vscode/
+
+# Ignorer le dossier include
+include/
