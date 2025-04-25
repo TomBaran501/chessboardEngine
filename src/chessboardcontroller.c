@@ -6,9 +6,10 @@ uint64_t getattacks(int piecePos, Chessboard *chessboard)
 {
     uint64_t pos = create_1bit_board(piecePos);
     int color = (chessboard->occupied_white & pos) ? WHITE : BLACK;
+    uint64_t ennemies = color == WHITE ? chessboard->occupied_black : chessboard->occupied_white;
 
     if (chessboard->pawns & pos)
-        return masks_pawn_captures[color][piecePos];
+        return masks_pawn_captures[color][piecePos] & ennemies;
     else if (chessboard->knights & pos)
         return masks_knight_moves[piecePos];
     else if (chessboard->bishops & pos)
@@ -29,6 +30,7 @@ MoveList *getlegalmoves(int piecePos, Chessboard *chessboard)
     uint64_t attacks = getattacks(piecePos, chessboard);
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
+    attacks |= handle_pawn_moves(piecePos, chessboard);
     attacks -= playerPieces & attacks;
 
     int nbmoves = count_bits(attacks);
@@ -68,27 +70,7 @@ MoveList *getalllegalmoves(Chessboard *chessboard)
     return allMoves;
 }
 
-bool play_move(Chessboard *board, Move move)
-{
-    MoveList *legalMoves = getalllegalmoves(board);
-    printf("play_move: %d -> %d\n", move.from, move.to);
-
-    if (ismoveinlist(legalMoves, move) == false)
-    {
-        return false; // Le mouvement n'est pas valide
-    }
-
-    uint64_t from_bitboard = create_1bit_board(move.from);
-    uint64_t to_bitboard = create_1bit_board(move.to);
-
-    update_bitboards(from_bitboard, board, to_bitboard);
-
-    board->white_to_play = !board->white_to_play;
-
-    return true; // Ajout d'un retour pour indiquer que le mouvement a été joué
-}
-
-void update_bitboards(uint64_t from_bitboard, Chessboard *board, uint64_t to_bitboard)
+void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64_t to_bitboard)
 {
     if (from_bitboard & board->rooks)
     {
@@ -130,4 +112,52 @@ void update_bitboards(uint64_t from_bitboard, Chessboard *board, uint64_t to_bit
         board->occupied_black -= from_bitboard;
         board->occupied_black += to_bitboard;
     }
+}
+
+void update_bitboards_captures(Chessboard *board, uint64_t to_bitboard)
+{
+    if (to_bitboard & board->rooks)
+        board->rooks -= to_bitboard;
+
+    else if (to_bitboard & board->pawns)
+        board->pawns -= to_bitboard;
+
+    else if (to_bitboard & board->knights)
+        board->knights -= to_bitboard;
+
+    else if (to_bitboard & board->bishops)
+        board->bishops -= to_bitboard;
+
+    else if (to_bitboard & board->queens)
+        board->queens -= to_bitboard;
+
+    else if (to_bitboard & board->kings)
+        board->kings -= to_bitboard;
+
+    if (board->occupied_white & to_bitboard)
+        board->occupied_white -= to_bitboard;
+
+    else if (board->occupied_black & to_bitboard)
+        board->occupied_black -= to_bitboard;
+}
+
+bool play_move(Chessboard *board, Move move)
+{
+    MoveList *legalMoves = getalllegalmoves(board);
+    printf("play_move: %d -> %d\n", move.from, move.to);
+
+    if (ismoveinlist(legalMoves, move) == false)
+    {
+        return false; // Le mouvement n'est pas valide
+    }
+
+    uint64_t from_bitboard = create_1bit_board(move.from);
+    uint64_t to_bitboard = create_1bit_board(move.to);
+
+    update_bitboards_captures(board, to_bitboard);
+    update_bitboards_movement(from_bitboard, board, to_bitboard);
+
+    board->white_to_play = !board->white_to_play;
+
+    return true; // Ajout d'un retour pour indiquer que le mouvement a été joué
 }
