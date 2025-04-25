@@ -18,14 +18,17 @@ void init_chessboard(Chessboard *board)
     board->queens = 0x0800000000000008ULL;
     board->kings = 0x1000000000000010ULL;
 
-    board->occupied_white = RANK_1 | RANK_2;
-    board->occupied_black = RANK_7 | RANK_8;
+    board->occupied_black = RANK_1 | RANK_2;
+    board->occupied_white = RANK_7 | RANK_8;
+
+    board->white_to_play = true;
 }
 
 void print_chessboard(const Chessboard *board)
 {
-    for (int rank = 7; rank >= 0; rank--)
+    for (int rank = 0; rank <= 7; rank++)
     {
+        printf("%i  ", 8-rank);
         for (int file = 0; file < 8; file++)
         {
             uint64_t pos = 1ULL << (rank * 8 + file);
@@ -61,4 +64,6 @@ void print_chessboard(const Chessboard *board)
         printf("\n");
     }
     printf("\n");
+    printf("   a b c d e f g h");
+    printf("\n \n");
 }

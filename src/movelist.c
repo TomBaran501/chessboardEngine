@@ -35,3 +35,15 @@ void freeMoveList(MoveList *list)
     free(list->moves);
     free(list);
 }
+
+bool ismoveinlist(const MoveList *list, Move move)
+{
+    for (int i = 0; i < list->count; i++)
+    {
+        if (list->moves[i].from == move.from && list->moves[i].to == move.to)
+        {
+            return true;
+        }
+    }
+    return false;
+}

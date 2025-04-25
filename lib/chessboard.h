@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 // Définition de la structure Chessboard
@@ -18,6 +19,9 @@ typedef struct
 
     uint64_t occupied_white;
     uint64_t occupied_black;
+
+    bool white_to_play;
+    
 } Chessboard;
 
 // Initialisation d'un échiquier avec la position de départ

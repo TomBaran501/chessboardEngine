@@ -12,6 +12,16 @@ typedef struct
     uint16_t flag : 4; // 4 bits pour les types spéciaux de mouvements
 } Move;
 
+// Flags pour les promotions
+enum
+{
+    NORMAL_MOVE = 0,
+    PROMOTION_N = 1,
+    PROMOTION_B = 2,
+    PROMOTION_R = 3,
+    PROMOTION_Q = 4,
+};
+
 /// @brief permet d'initialiser un coup avec toutes les valeurs à 0
 /// @param move
 void initialise_empty_move(Move *move);
@@ -37,5 +47,7 @@ void set_pawn_advanced2(Move *move, bool value);
 
 bool get_promotion(Move move);
 void set_promotion(Move *move, bool value);
+
+Move get_move(char move[10]);
 
 #endif
