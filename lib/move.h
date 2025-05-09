@@ -7,9 +7,10 @@
 // Structure représentant un mouvement dans le jeu d'échecs
 typedef struct
 {
-    uint16_t from : 6; // 6 bits pour la case de départ (0-63)
-    uint16_t to : 6;   // 6 bits pour la case d'arrivée (0-63)
-    uint16_t flag : 4; // 4 bits pour les types spéciaux de mouvements
+    uint16_t from : 6;           // 6 bits pour la case de départ (0-63)
+    uint16_t to : 6;             // 6 bits pour la case d'arrivée (0-63)
+    uint16_t flag : 4;           // 4 bits pour les types spéciaux de mouvements
+    uint16_t promotion_flag : 4; // 4 bits pour la promotion
 } Move;
 
 // Flags pour les promotions
@@ -45,8 +46,8 @@ void set_short_castle(Move *move, bool value);
 bool get_pawn_advanced2(Move move);
 void set_pawn_advanced2(Move *move, bool value);
 
-bool get_promotion(Move move);
-void set_promotion(Move *move, bool value);
+bool get_enpassant(Move move);
+void set_enpassant(Move *move, bool value);
 
 Move get_move(char move[10]);
 

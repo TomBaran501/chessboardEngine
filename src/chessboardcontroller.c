@@ -9,7 +9,7 @@ uint64_t getattacks(int piecePos, Chessboard *chessboard)
     uint64_t ennemies = color == WHITE ? chessboard->occupied_black : chessboard->occupied_white;
 
     if (chessboard->pawns & pos)
-        return masks_pawn_captures[color][piecePos] & ennemies;
+        return masks_pawn_captures[color][piecePos] & (ennemies || chessboard->enpassant);
     else if (chessboard->knights & pos)
         return masks_knight_moves[piecePos];
     else if (chessboard->bishops & pos)
@@ -22,6 +22,30 @@ uint64_t getattacks(int piecePos, Chessboard *chessboard)
         return masks_king_moves[piecePos];
     else
         return 0;
+}
+
+void handle_pawn_flags(Move *move, Chessboard *chessboard)
+{
+    if (chessboard->pawns & create_1bit_board(move->from))
+    {
+        if (abs(move->to - move->from) == 16)
+        {
+            set_pawn_advanced2(move, true);
+        }
+        else if (abs(move->to - move->from) == 7 || abs(move->to - move->from) == 9)
+        {
+            uint64_t ocuppied = chessboard->white_to_play ? chessboard->occupied_black : chessboard->occupied_white;
+            if ((ocuppied & create_1bit_board(move->to)) == 0)
+            {
+                set_enpassant(move, true);
+            }
+        }
+    }
+}
+
+void add_flags(Move *move, Chessboard *chessboard)
+{
+    handle_pawn_flags(move, chessboard);
 }
 
 MoveList *getlegalmoves(int piecePos, Chessboard *chessboard)
@@ -39,10 +63,10 @@ MoveList *getlegalmoves(int piecePos, Chessboard *chessboard)
     {
         Move move;
         initialise_move(&move, piecePos, get_lsb_index(attacks));
+        add_flags(&move, chessboard);
         addMove(moves, move);
         attacks = pop_bit(attacks);
     }
-
     return moves;
 }
 
@@ -53,7 +77,6 @@ MoveList *getalllegalmoves(Chessboard *chessboard)
 
     while (playerPieces)
     {
-
         int piecePos = get_lsb_index(playerPieces);
         MoveList *pieceMoves = getlegalmoves(piecePos, chessboard);
 
@@ -102,19 +125,19 @@ void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64
         board->kings -= from_bitboard;
         board->kings += to_bitboard;
     }
-    if (board->white_to_play)
+    if (board->occupied_white & from_bitboard)
     {
         board->occupied_white -= from_bitboard;
         board->occupied_white += to_bitboard;
     }
-    else
+    else if (board->occupied_black & from_bitboard)
     {
         board->occupied_black -= from_bitboard;
         board->occupied_black += to_bitboard;
     }
 }
 
-void update_bitboards_captures(Chessboard *board, uint64_t to_bitboard)
+void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
 {
     if (to_bitboard & board->rooks)
         board->rooks -= to_bitboard;
@@ -144,20 +167,31 @@ void update_bitboards_captures(Chessboard *board, uint64_t to_bitboard)
 bool play_move(Chessboard *board, Move move)
 {
     MoveList *legalMoves = getalllegalmoves(board);
-    printf("play_move: %d -> %d\n", move.from, move.to);
 
     if (ismoveinlist(legalMoves, move) == false)
     {
         return false; // Le mouvement n'est pas valide
     }
 
+    // Mise a jour des bitboards
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);
 
-    update_bitboards_captures(board, to_bitboard);
+    if (get_enpassant(move))
+    {
+        uint64_t pos_ennemie = board->white_to_play ? move.to - 8 : move.to + 8;
+        update_bitboard_delete_piece(board, create_1bit_board(pos_ennemie));
+    }
+
+    update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);
 
+    // Mise a jour du plateau
+    board->enpassant = 0;
+    if (get_pawn_advanced2(move))
+    {
+        board->enpassant = to_bitboard;
+    }
     board->white_to_play = !board->white_to_play;
-
     return true; // Ajout d'un retour pour indiquer que le mouvement a été joué
 }

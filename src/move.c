@@ -71,11 +71,12 @@ void set_pawn_advanced2(Move *move, bool value)
     }
 }
 
-bool get_promotion(Move move)
+bool get_enpassant(Move move)
 {
     return ((move.flag >> 3) & 1) == 1;
 }
-void set_promotion(Move *move, bool value)
+
+void set_enpassant(Move *move, bool value)
 {
     if (value)
     {
@@ -110,7 +111,8 @@ Move get_move(char move[10])
 
     m.from = from;
     m.to = to;
-    m.flag = NORMAL_MOVE;
+    m.flag = 0;
+    m.promotion_flag = NORMAL_MOVE;
 
     // Gestion de la promotion : e.g., e7e8q
     if (strlen(move) == 5)
@@ -119,16 +121,16 @@ Move get_move(char move[10])
         switch (promo)
         {
         case 'n':
-            m.flag = PROMOTION_N;
+            m.promotion_flag = PROMOTION_N;
             break;
         case 'b':
-            m.flag = PROMOTION_B;
+            m.promotion_flag = PROMOTION_B;
             break;
         case 'r':
-            m.flag = PROMOTION_R;
+            m.promotion_flag = PROMOTION_R;
             break;
         case 'q':
-            m.flag = PROMOTION_Q;
+            m.promotion_flag = PROMOTION_Q;
             break;
         }
     }

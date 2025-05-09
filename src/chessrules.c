@@ -14,7 +14,7 @@ uint64_t handle_pawn_moves(int pos_piece, Chessboard *board)
 
     if (masks_pawn_moves[color][pos_piece] & (board->occupied_black | board->occupied_white))
     {
-        return create_1bit_board(pos_piece + direction * 8);
+        return create_1bit_board(pos_piece + direction * 8) & (board->occupied_black | board->occupied_white) ? 0 : create_1bit_board(pos_piece + direction * 8);
     }
     else
     {

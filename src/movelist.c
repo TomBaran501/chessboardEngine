@@ -9,14 +9,28 @@ MoveList *createMoveList(int initialCapacity)
     return list;
 }
 
+void copyMove(Move *dest, const Move *src)
+{
+    dest->from = src->from;
+    dest->to = src->to;
+    dest->flag = src->flag;
+    dest->promotion_flag = src->promotion_flag;
+}
+
 void addMove(MoveList *list, Move move)
 {
     if (list->count >= list->capacity)
     {
         list->capacity *= 2;
-        list->moves = realloc(list->moves, list->capacity * sizeof(Move));
+        Move *newMoves = realloc(list->moves, list->capacity * sizeof(Move));
+        if (!newMoves)
+        {
+            printf("Erreur de réallocation de mémoire");
+            exit(EXIT_FAILURE);
+        }
+        list->moves = newMoves;
     }
-    list->moves[list->count++] = move;
+    copyMove(&list->moves[list->count++], &move);
 }
 
 Move getMove(const MoveList *list, int i)
@@ -47,3 +61,5 @@ bool ismoveinlist(const MoveList *list, Move move)
     }
     return false;
 }
+
+

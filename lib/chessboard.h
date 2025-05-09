@@ -20,7 +20,10 @@ typedef struct
     uint64_t occupied_white;
     uint64_t occupied_black;
 
-    bool white_to_play;
+    uint64_t enpassant;
+    uint64_t castling;
+
+    int white_to_play;
     
 } Chessboard;
 
@@ -30,5 +33,6 @@ void init_chessboard(Chessboard *board);
 /// @brief This function prints the chessboard
 /// @param board the chessboard to print
 void print_chessboard(const Chessboard *board);
+
 
 #endif
