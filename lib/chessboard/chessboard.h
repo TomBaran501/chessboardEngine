@@ -34,5 +34,4 @@ void init_chessboard(Chessboard *board);
 /// @param board the chessboard to print
 void print_chessboard(const Chessboard *board);
 
-
 #endif

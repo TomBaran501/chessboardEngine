@@ -1,5 +1,5 @@
 #include "chessboard.h"
-#include "masks.h"
+#include "bitboards/masks.h"
 
 
 /// @brief Renvoie les coups possibles (hors captures) pour un pion

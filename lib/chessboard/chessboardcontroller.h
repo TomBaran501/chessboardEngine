@@ -1,7 +1,7 @@
 #include "chessboard.h"
-#include "masks.h"
-#include "movelist.h"
-#include "bitboard.h"
+#include "bitboards/masks.h"
+#include "move/movelist.h"
+#include "bitboards/bitboard.h"
 #include "chessrules.h"
 
 /// @brief renvoie la liste des coups possibles pour une piece

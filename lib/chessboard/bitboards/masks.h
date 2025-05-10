@@ -12,6 +12,8 @@ extern uint64_t masks_king_moves[64];
 extern uint64_t masks_knight_moves[64];
 extern uint64_t masks_pawn_captures[2][64];
 extern uint64_t masks_pawn_moves[2][64];
+extern uint64_t bishop_masks[64];
+extern uint64_t rook_masks[64];
 
 /// @brief Cette fonction permet d'initialiser les bitsmasks qui vont être un précalcul
 /// pour tout les coups possibles pour toutes les pieces. Ces coups sont stockés sous forme de bitboards

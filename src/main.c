@@ -1,8 +1,8 @@
-#include "chessboard.h"
-#include "bitboard.h"
-#include "masks.h"
-#include "move.h"
-#include "chessboardcontroller.h"
+#include "chessboard/chessboard.h"
+#include "chessboard/bitboards/bitboard.h"
+#include "chessboard/bitboards/masks.h"
+#include "chessboard/move/move.h"
+#include "chessboard/chessboardcontroller.h"
 
 #include "stdlib.h"
 #include "string.h"
