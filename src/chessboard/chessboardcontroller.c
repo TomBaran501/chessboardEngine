@@ -42,9 +42,10 @@ void add_flags(Move *move, Chessboard *chessboard)
     handle_pawn_flags(move, chessboard);
 }
 
-MoveList *getlegalmoves(int piecePos, Chessboard *chessboard)
+GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
 {
-    MoveList *moves = createMoveList(10);
+    GenericList *moves = malloc(sizeof(GenericList));
+    list_init(moves, sizeof(Move));
     uint64_t attacks = getattacks(piecePos, chessboard);
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
@@ -58,27 +59,34 @@ MoveList *getlegalmoves(int piecePos, Chessboard *chessboard)
         Move move;
         initialise_move(&move, piecePos, get_lsb_index(attacks));
         add_flags(&move, chessboard);
-        addMove(moves, move);
+        list_add(moves, &move);
+
         attacks = pop_bit(attacks);
     }
     return moves;
 }
 
-MoveList *getalllegalmoves(Chessboard *chessboard)
+GenericList *getalllegalmoves(Chessboard *chessboard)
 {
-    MoveList *allMoves = createMoveList(50); // Taille initiale arbitraire
+    GenericList *allMoves = malloc(sizeof(GenericList));
+    list_init(allMoves, sizeof(Move));
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
     while (playerPieces)
     {
         int piecePos = get_lsb_index(playerPieces);
-        MoveList *pieceMoves = getlegalmoves(piecePos, chessboard);
+        GenericList *pieceMoves = getlegalmoves(piecePos, chessboard);
+        // printf("nbcoups: %i", pieceMoves ->size);
 
         // Ajoute les mouvements de cette pièce à la liste globale
-        for (int i = 0; i < pieceMoves->count; i++)
-            addMove(allMoves, pieceMoves->moves[i]);
+        for (int i = 0; i < pieceMoves->size; i++)
+        {
+            list_add(allMoves, &((Move *)pieceMoves->data)[i]);
+        }
 
-        freeMoveList(pieceMoves);             // Libère la mémoire de la liste temporaire
+        // Libère la mémoire de la liste temporaire
+        list_free(pieceMoves);
+        free(pieceMoves);
         playerPieces = pop_bit(playerPieces); // Supprime la pièce traitée
     }
 
@@ -156,12 +164,28 @@ void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
         board->occupied_black -= to_bitboard;
 }
 
+bool is_legal_move(Chessboard *board, Move *move)
+{
+    GenericList *legalMoves = getalllegalmoves(board);
+
+    for (int i = 0; i < legalMoves->size; i++)
+    {
+        if (((Move *)legalMoves->data)[i].from == move->from && ((Move *)legalMoves->data)[i].to == move->to)
+        {
+            list_free(legalMoves);
+            free(legalMoves);
+            return true;
+        }
+    }
+    list_free(legalMoves);
+    free(legalMoves);
+    return false;
+}
+
 bool play_move(Chessboard *board, Move move)
 {
-    MoveList *legalMoves = getalllegalmoves(board);
-
-    if (ismoveinlist(legalMoves, move) == false)
-        return false; // Le mouvement n'est pas valide
+    if (!is_legal_move(board, &move))
+        return false;
 
     add_flags(&move, board);
 
