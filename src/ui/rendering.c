@@ -1,6 +1,11 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include <stdbool.h>
 #include "rendering.h"
+#include "variables.h"
+#include "chessboard/chessboard.h"
+#include "chessboard/chessboardcontroller.h"
+#include "tools/dynamic_list.h"
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -11,6 +16,10 @@ SDL_Color DARK_BEIGE = {208, 185, 170, 255}; // foncé
 
 SDL_Color DARK_GREEN = {118, 150, 86, 255};  // clair
 SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
+
+SDL_Texture *piece_textures[12];
+
+char *start_pos = "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b - e3 0 1";
 
 void draw_board(SDL_Renderer *renderer)
 {
@@ -38,7 +47,7 @@ void draw_board(SDL_Renderer *renderer)
 }
 
 /// Renvoie l'index de la case cliquée (0 à 63), ou -1 si aucun clic gauche
-int get_clicked_square(SDL_Event *event)
+int get_colored_square(SDL_Event *event)
 {
     if (event->type == SDL_MOUSEBUTTONDOWN && event->button.button == SDL_BUTTON_LEFT)
     {
@@ -56,25 +65,24 @@ int get_clicked_square(SDL_Event *event)
     return -1;
 }
 
-SDL_Color swap_square_color(SDL_Color original)
+SDL_Color swap_square_color(int beige, int colored)
 {
-    if (original.r == BEIGE.r && original.g == BEIGE.g && original.b == BEIGE.b)
-    {
-        return DARK_BEIGE;
-    }
-    else if (original.r == DARK_GREEN.r && original.g == DARK_GREEN.g && original.b == DARK_GREEN.b)
-    {
-        return DARKER_GREEN;
-    }
-    else if (original.r == DARK_BEIGE.r && original.g == DARK_BEIGE.g && original.b == DARK_BEIGE.b)
+    if (beige && colored)
     {
         return BEIGE;
     }
-    else if (original.r == DARKER_GREEN.r && original.g == DARKER_GREEN.g && original.b == DARKER_GREEN.b)
+    if (!beige && !colored)
+    {
+        return DARKER_GREEN;
+    }
+    if (beige && !colored)
+    {
+        return DARK_BEIGE;
+    }
+    else
     {
         return DARK_GREEN;
     }
-    return original; // pas reconnu, inchangé
 }
 
 void draw_colored_square(SDL_Renderer *renderer, int square, SDL_Color color)
@@ -90,6 +98,92 @@ void draw_colored_square(SDL_Renderer *renderer, int square, SDL_Color color)
 
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
     SDL_RenderFillRect(renderer, &rect);
+}
+
+void swap_color_squares(GenericList *list_squares, int colored, SDL_Renderer *renderer)
+{
+    for (int i = 0; i < list_squares->size; i++)
+    {
+        int square = ((int *)list_squares->data)[i];
+        int beige = (square / 8 + square % 8) % 2 == 0 ? 1 : 0;
+        draw_colored_square(renderer, square, swap_square_color(beige, colored));
+    }
+}
+
+SDL_Texture *load_texture(SDL_Renderer *renderer, const char *path)
+{
+    SDL_Surface *surface = IMG_Load(path);
+    if (!surface)
+    {
+        SDL_Log("Erreur IMG_Load: %s", IMG_GetError());
+        return NULL;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+    return texture;
+}
+
+void load_textures(SDL_Renderer *renderer)
+{
+    piece_textures[PION_B] = load_texture(renderer, "assets/Pion_B.png");
+    piece_textures[PION_N] = load_texture(renderer, "assets/Pion_N.png");
+    piece_textures[CAVAL_B] = load_texture(renderer, "assets/Cavalier_B.png");
+    piece_textures[CAVAL_N] = load_texture(renderer, "assets/Cavalier_N.png");
+    piece_textures[FOU_B] = load_texture(renderer, "assets/Fou_B.png");
+    piece_textures[FOU_N] = load_texture(renderer, "assets/Fou_N.png");
+    piece_textures[REINE_B] = load_texture(renderer, "assets/Reine_B.png");
+    piece_textures[REINE_N] = load_texture(renderer, "assets/Reine_N.png");
+    piece_textures[ROI_B] = load_texture(renderer, "assets/Roi_B.png");
+    piece_textures[ROI_N] = load_texture(renderer, "assets/Roi_N.png");
+    piece_textures[TOUR_B] = load_texture(renderer, "assets/Tour_B.png");
+    piece_textures[TOUR_N] = load_texture(renderer, "assets/Tour_N.png");
+}
+
+void render_fen(SDL_Renderer *renderer, const char *fen)
+{
+    int fen_to_texture_index[12] = {0};
+    fen_to_texture_index['P'] = PION_B;
+    fen_to_texture_index['p'] = PION_N;
+    fen_to_texture_index['N'] = CAVAL_B;
+    fen_to_texture_index['n'] = CAVAL_N;
+    fen_to_texture_index['B'] = FOU_B;
+    fen_to_texture_index['b'] = FOU_N;
+    fen_to_texture_index['Q'] = REINE_B;
+    fen_to_texture_index['q'] = REINE_N;
+    fen_to_texture_index['K'] = ROI_B;
+    fen_to_texture_index['k'] = ROI_N;
+    fen_to_texture_index['R'] = TOUR_B;
+    fen_to_texture_index['r'] = TOUR_N;
+
+    int row = 0, col = 0;
+    for (const char *c = fen; *c && row < 8; ++c)
+    {
+        if (*c == ' ')
+            break; // Fin de la partie plateau du FEN
+        if (*c == '/')
+        {
+            row++;
+            col = 0;
+        }
+        else if (*c >= '1' && *c <= '8')
+        {
+            col += *c - '0';
+        }
+        else
+        {
+            int idx = fen_to_texture_index[(int)*c];
+            if (piece_textures[idx])
+            {
+                SDL_Rect dst = {
+                    .x = col * SQUARE_SIZE,
+                    .y = row * SQUARE_SIZE,
+                    .w = SQUARE_SIZE,
+                    .h = SQUARE_SIZE};
+                SDL_RenderCopy(renderer, piece_textures[idx], NULL, &dst);
+            }
+            col++;
+        }
+    }
 }
 
 int main()
@@ -122,10 +216,18 @@ int main()
         SDL_Quit();
         return 1;
     }
+    load_textures(renderer);
+    GenericList *colored_squares = malloc(sizeof(GenericList));
+
+    Chessboard board;
+    init_chessboard_from_fen(&board, start_pos);
+    init_bitboards();
 
     bool running = true;
     SDL_Event event;
     draw_board(renderer);
+    render_fen(renderer, return_fen_code(&board));
+
     while (running)
     {
 
@@ -134,16 +236,28 @@ int main()
             if (event.type == SDL_QUIT)
                 running = false;
 
-            int square = get_clicked_square(&event);
+            int square = get_colored_square(&event);
             if (square != -1)
             {
-                printf("Case cliquée : %d (ligne %d, colonne %d)\n", square, square / 8, square % 8);
-                SDL_Color original = (square / 8 + square % 8) % 2 == 0 ? BEIGE : DARK_GREEN;
-                draw_colored_square(renderer, square, swap_square_color(original));
+                swap_color_squares(colored_squares, 0, renderer);
+                SDL_RenderClear(renderer);
+                draw_board(renderer);
+                render_fen(renderer, return_fen_code(&board));
             }
         }
+
         SDL_RenderPresent(renderer);
     }
+
+    list_free(colored_squares);
+    free(colored_squares);
+
+    for (int i = 0; i < 12; i++)
+    {
+        if (piece_textures[i])
+            SDL_DestroyTexture(piece_textures[i]);
+    }
+    IMG_Quit();
 
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

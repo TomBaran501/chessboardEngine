@@ -1,0 +1,12 @@
+#define PION_B 0
+#define PION_N 1
+#define CAVAL_B 2
+#define CAVAL_N 3
+#define FOU_B 4
+#define FOU_N 5
+#define TOUR_B 6
+#define TOUR_N 7
+#define REINE_B 8
+#define REINE_N 9
+#define ROI_B 10
+#define ROI_N 11

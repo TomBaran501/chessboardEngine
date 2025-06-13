@@ -64,3 +64,18 @@ int is_in_list(GenericList *list, void *item) {
 
     return 0;
 }
+
+void list_remove(GenericList *list, void *item)
+{
+    if (!list || !item) return;
+
+    char *base = (char *)list->data;
+
+    for (int i = 0; i < list->size; ++i) {
+        void *current = base + i * list->item_size;
+        if (memcmp(current, item, list->item_size) == 0) {
+            list_remove_at(list, i);
+            return; // On enlève seulement la première occurrence
+        }
+    }
+}
