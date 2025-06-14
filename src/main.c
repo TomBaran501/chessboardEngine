@@ -14,14 +14,12 @@ void run_game()
 
     //init_chessboard(&board);
     init_chessboard_from_fen(&board, "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b - e3 0 1");
-    init_bitboards();
 
     printf("Bienvenue dans le jeu d'échecs en C !\n");
     print_chessboard(&board);
 
     while (1)
     {
-        printf(return_fen_code(&board));
         printf("\n%s to move > ", board.white_to_play ? "White" : "Black");
 
         if (!fgets(move, sizeof(move), stdin))

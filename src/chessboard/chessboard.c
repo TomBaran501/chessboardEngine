@@ -309,4 +309,5 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
     }
 
     // (Optionnel) ignore les demi-coups et fullmove
+    init_bitboards();
 }

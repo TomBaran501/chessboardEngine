@@ -19,4 +19,5 @@ void list_free(GenericList *list);
 void list_remove_at(GenericList *list, int index);
 int is_in_list(GenericList *list, void *item);
 void list_remove(GenericList *list, void *item);
+void list_copy(GenericList *dest, GenericList *src);
 #endif

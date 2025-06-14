@@ -19,7 +19,7 @@ SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
 
 SDL_Texture *piece_textures[12];
 
-char *start_pos = "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b - e3 0 1";
+char *start_pos = "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b KQkq e3 0 1";
 
 void draw_board(SDL_Renderer *renderer)
 {
@@ -41,9 +41,6 @@ void draw_board(SDL_Renderer *renderer)
             SDL_RenderFillRect(renderer, &square);
         }
     }
-
-    SDL_RenderPresent(renderer);
-    // SDL_Delay(16);  // Limite à environ 60 FPS
 }
 
 /// Renvoie l'index de la case cliquée (0 à 63), ou -1 si aucun clic gauche
@@ -155,14 +152,14 @@ void render_fen(SDL_Renderer *renderer, const char *fen)
     fen_to_texture_index['R'] = TOUR_B;
     fen_to_texture_index['r'] = TOUR_N;
 
-    int row = 0, col = 0;
-    for (const char *c = fen; *c && row < 8; ++c)
+    int row = 7, col = 0;
+    for (const char *c = fen; *c && row >= 0; ++c)
     {
         if (*c == ' ')
             break; // Fin de la partie plateau du FEN
         if (*c == '/')
         {
-            row++;
+            row--;
             col = 0;
         }
         else if (*c >= '1' && *c <= '8')
@@ -184,6 +181,34 @@ void render_fen(SDL_Renderer *renderer, const char *fen)
             col++;
         }
     }
+}
+
+int set_moves(Chessboard *board, GenericList *moves, int pos_piece, GenericList *colored_squares, SDL_Renderer *renderer)
+{
+    list_copy(moves, getlegalmoves(pos_piece, board));
+    if (moves->size == 0)
+        return 0;
+
+    for (int i = 0; i < moves->size; i++)
+    {
+        int to = (int)((Move *)moves->data)[i].to;
+        list_add(colored_squares, &to);
+    }
+
+    swap_color_squares(colored_squares, 0, renderer);
+    return 1;
+}
+
+void render_play_move(Chessboard *board, GenericList *moves, int to)
+{
+    Move move;
+    for (int i = 0; i < moves->size; i++)
+    {
+        if ((int)((Move *)moves->data)[i].to == to)
+            move = ((Move *)moves->data)[i];
+    }
+
+    play_move(board, move);
 }
 
 int main()
@@ -217,11 +242,13 @@ int main()
         return 1;
     }
     load_textures(renderer);
+
     GenericList *colored_squares = malloc(sizeof(GenericList));
+    list_init(colored_squares, sizeof(int));
+    GenericList *moves = malloc(sizeof(GenericList));
 
     Chessboard board;
     init_chessboard_from_fen(&board, start_pos);
-    init_bitboards();
 
     bool running = true;
     SDL_Event event;
@@ -239,9 +266,21 @@ int main()
             int square = get_colored_square(&event);
             if (square != -1)
             {
-                swap_color_squares(colored_squares, 0, renderer);
                 SDL_RenderClear(renderer);
                 draw_board(renderer);
+
+                if (colored_squares->size == 0)
+                    set_moves(&board, moves, square, colored_squares, renderer);
+
+                else
+                {
+                    if (is_in_list(colored_squares, &square))
+                        render_play_move(&board, moves, square);
+
+                    swap_color_squares(colored_squares, 1, renderer);
+                    list_free(colored_squares);
+                }
+
                 render_fen(renderer, return_fen_code(&board));
             }
         }
@@ -249,8 +288,9 @@ int main()
         SDL_RenderPresent(renderer);
     }
 
-    list_free(colored_squares);
     free(colored_squares);
+    list_free(moves);
+    free(moves);
 
     for (int i = 0; i < 12; i++)
     {

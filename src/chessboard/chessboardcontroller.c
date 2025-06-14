@@ -46,9 +46,12 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
 {
     GenericList *moves = malloc(sizeof(GenericList));
     list_init(moves, sizeof(Move));
-    uint64_t attacks = getattacks(piecePos, chessboard);
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
+    if ((create_1bit_board(piecePos) & playerPieces) == 0)
+        return moves;
+
+    uint64_t attacks = getattacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
     attacks -= playerPieces & attacks;
 

@@ -26,7 +26,6 @@ void *list_get(GenericList *list, int index)
 }
 void list_free(GenericList *list)
 {
-    free(list->data);
     list->data = NULL;
     list->size = 0;
     list->capacity = 0;
@@ -50,14 +49,18 @@ void list_remove_at(GenericList *list, int index)
     list->size--;
 }
 
-int is_in_list(GenericList *list, void *item) {
-    if (!list || !item) return 0;
+int is_in_list(GenericList *list, void *item)
+{
+    if (!list || !item)
+        return 0;
 
     char *base = (char *)list->data;
 
-    for (int i = 0; i < list->size; ++i) {
+    for (int i = 0; i < list->size; ++i)
+    {
         void *current = base + i * list->item_size;
-        if (memcmp(current, item, list->item_size) == 0) {
+        if (memcmp(current, item, list->item_size) == 0)
+        {
             return 1;
         }
     }
@@ -67,15 +70,30 @@ int is_in_list(GenericList *list, void *item) {
 
 void list_remove(GenericList *list, void *item)
 {
-    if (!list || !item) return;
+    if (!list || !item)
+        return;
 
     char *base = (char *)list->data;
 
-    for (int i = 0; i < list->size; ++i) {
+    for (int i = 0; i < list->size; ++i)
+    {
         void *current = base + i * list->item_size;
-        if (memcmp(current, item, list->item_size) == 0) {
+        if (memcmp(current, item, list->item_size) == 0)
+        {
             list_remove_at(list, i);
             return; // On enlève seulement la première occurrence
         }
     }
+}
+
+void list_copy(GenericList *dest, GenericList *src)
+{
+    if (!src || !dest)
+        return;
+
+    dest->item_size = src->item_size;
+    dest->size = src->size;
+    dest->capacity = src->capacity;
+    dest->data = malloc(dest->capacity * dest->item_size);
+    memcpy(dest->data, src->data, src->size * src->item_size);
 }
