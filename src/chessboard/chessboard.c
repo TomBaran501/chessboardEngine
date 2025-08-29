@@ -9,6 +9,8 @@
 #define RANK_8 0xFF00000000000000ULL
 
 int casttling_squares[4] = {62, 58, 6, 2};
+const char *castling_rights = "KQkq";
+
 
 void init_chessboard(Chessboard *board)
 {
@@ -25,6 +27,7 @@ void init_chessboard(Chessboard *board)
 
     board->white_to_play = true;
 }
+
 
 void print_chessboard(const Chessboard *board)
 {

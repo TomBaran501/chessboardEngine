@@ -37,9 +37,22 @@ void handle_pawn_flags(Move *move, Chessboard *chessboard)
     }
 }
 
+void handle_roque_flags(Move *move, Chessboard *chessboard)
+{
+    if (chessboard->kings & create_1bit_board(move->from))
+    {
+        if (move->to - move->from == 2)
+            set_short_castle(move, true);
+
+        if (move->to - move->from == -2)
+            set_long_castle(move, true);
+    }
+}
+
 void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
+    handle_roque_flags(move, chessboard);
 }
 
 GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
@@ -53,6 +66,7 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
 
     uint64_t attacks = getattacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
+    attacks |= handle_roque_moves(piecePos, chessboard);
     attacks -= playerPieces & attacks;
 
     int nbmoves = count_bits(attacks);
@@ -79,7 +93,6 @@ GenericList *getalllegalmoves(Chessboard *chessboard)
     {
         int piecePos = get_lsb_index(playerPieces);
         GenericList *pieceMoves = getlegalmoves(piecePos, chessboard);
-        // printf("nbcoups: %i", pieceMoves ->size);
 
         // Ajoute les mouvements de cette pièce à la liste globale
         for (int i = 0; i < pieceMoves->size; i++)

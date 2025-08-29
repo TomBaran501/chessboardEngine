@@ -19,7 +19,7 @@ SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
 
 SDL_Texture *piece_textures[12];
 
-char *start_pos = "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b KQkq e3 0 1";
+char *start_pos = "RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr w KQkq - 0 1";
 
 void draw_board(SDL_Renderer *renderer)
 {

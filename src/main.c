@@ -7,13 +7,16 @@
 #include "stdlib.h"
 #include "string.h"
 
+char *start_pos = "RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr w KQkq - 0 1";
+
+
 void run_game()
 {
     Chessboard board;
     char move[10];
-
-    //init_chessboard(&board);
-    init_chessboard_from_fen(&board, "RNBQKBNR/PPPP1PPP/8/4P3/8/8/pppppppp/rnbqkbnr b - e3 0 1");
+    
+    init_chessboard_from_fen(&board, start_pos);
+    
 
     printf("Bienvenue dans le jeu d'échecs en C !\n");
     print_chessboard(&board);
