@@ -209,16 +209,23 @@ bool play_move(Chessboard *board, Move move)
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);
 
+    int color = board->white_to_play ? 0 : 1;
+
     if (get_enpassant(move))
     {
         uint64_t pos_ennemie = board->white_to_play ? move.to + 8 : move.to - 8;
         update_bitboard_delete_piece(board, create_1bit_board(pos_ennemie));
     }
 
+    if (get_long_castle(move))
+        update_bitboards_movement(pos_rook_castle[color][LONGCASTLE][0], board, pos_rook_castle[color][LONGCASTLE][1]);
+
+    if (get_short_castle(move))
+        update_bitboards_movement(pos_rook_castle[color][SHORTCASTLE][0], board, pos_rook_castle[color][SHORTCASTLE][1]);
+
     update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);
 
-    // Mise a jour du plateau
     board->enpassant = 0;
 
     if (get_pawn_advanced2(move))
@@ -228,5 +235,5 @@ bool play_move(Chessboard *board, Move move)
     }
 
     board->white_to_play = !board->white_to_play;
-    return true; // Ajout d'un retour pour indiquer que le mouvement a été joué
+    return true;
 }
