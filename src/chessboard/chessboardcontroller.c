@@ -2,29 +2,6 @@
 
 #include <string.h>
 
-uint64_t getattacks(int piecePos, Chessboard *chessboard)
-{
-    uint64_t pos = create_1bit_board(piecePos);
-    int color = (chessboard->occupied_white & pos) ? WHITE : BLACK;
-    uint64_t ennemies = color == WHITE ? chessboard->occupied_black : chessboard->occupied_white;
-    uint64_t pieces = (chessboard->occupied_black) | (chessboard->occupied_white);
-
-    if (chessboard->pawns & pos)
-        return masks_pawn_captures[color][piecePos] & (ennemies | chessboard->enpassant);
-    else if (chessboard->knights & pos)
-        return masks_knight_moves[piecePos];
-    else if (chessboard->bishops & pos)
-        return get_bishop_attacks(piecePos, pieces & bishop_masks[piecePos]);
-    else if (chessboard->rooks & pos)
-        return get_rook_attacks(piecePos, pieces & rook_masks[piecePos]);
-    else if (chessboard->queens & pos)
-        return get_bishop_attacks(piecePos, pieces & bishop_masks[piecePos]) | get_rook_attacks(piecePos, pieces & rook_masks[piecePos]);
-    else if (chessboard->kings & pos)
-        return masks_king_moves[piecePos];
-    else
-        return 0;
-}
-
 void handle_pawn_flags(Move *move, Chessboard *chessboard)
 {
     if (chessboard->pawns & create_1bit_board(move->from))
@@ -49,6 +26,12 @@ void handle_roque_flags(Move *move, Chessboard *chessboard)
     }
 }
 
+uint64_t get_king_pos(Chessboard *board, int color)
+{
+    uint64_t allies = color == WHITE ? board->occupied_white : board->occupied_black;
+    return get_lsb_index(allies & board->kings);
+}
+
 void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
@@ -64,9 +47,17 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
     if ((create_1bit_board(piecePos) & playerPieces) == 0)
         return moves;
 
+    int color = chessboard->white_to_play ? WHITE : BLACK;
+    int king_square = get_lsb_index(playerPieces & chessboard->kings);
+
+    uint64_t bloquerEchec = handle_checks(king_square, chessboard, color);
+
     uint64_t attacks = getattacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
     attacks |= handle_roque_moves(piecePos, chessboard);
+    attacks &= bloquerEchec;
+    attacks &= handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color);
+
     attacks -= playerPieces & attacks;
 
     int nbmoves = count_bits(attacks);
@@ -198,18 +189,22 @@ bool is_legal_move(Chessboard *board, Move *move)
     return false;
 }
 
-bool play_move(Chessboard *board, Move move)
+bool try_play_move(Chessboard *board, Move move)
 {
     if (!is_legal_move(board, &move))
         return false;
 
     add_flags(&move, board);
 
-    // Mise a jour des bitboards
+    return play_move(board, move);
+}
+
+bool play_move(Chessboard *board, Move move)
+{
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);
 
-    int color = board->white_to_play ? 0 : 1;
+    int color = board->white_to_play ? WHITE : BLACK;
 
     if (get_enpassant(move))
     {

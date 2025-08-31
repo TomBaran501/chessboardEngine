@@ -9,14 +9,12 @@
 
 char *start_pos = "RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr w KQkq - 0 1";
 
-
 void run_game()
 {
     Chessboard board;
     char move[10];
-    
+
     init_chessboard_from_fen(&board, start_pos);
-    
 
     printf("Bienvenue dans le jeu d'échecs en C !\n");
     print_chessboard(&board);
@@ -46,7 +44,6 @@ void run_game()
             printf("Coup invalide. Réessayez.\n");
             continue;
         }
-
         print_chessboard(&board);
     }
 }

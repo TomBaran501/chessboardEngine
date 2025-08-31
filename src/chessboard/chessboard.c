@@ -11,7 +11,6 @@
 int casttling_squares[4] = {62, 58, 6, 2};
 const char *castling_rights = "KQkq";
 
-
 void init_chessboard(Chessboard *board)
 {
 
@@ -27,7 +26,6 @@ void init_chessboard(Chessboard *board)
 
     board->white_to_play = true;
 }
-
 
 void print_chessboard(const Chessboard *board)
 {
@@ -311,6 +309,5 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
         ptr += 2;
     }
 
-    // (Optionnel) ignore les demi-coups et fullmove
     init_bitboards();
 }

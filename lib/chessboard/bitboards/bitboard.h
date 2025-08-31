@@ -13,5 +13,7 @@ uint64_t set_bit(uint64_t bitboard, int square);
 uint64_t pop_bit(uint64_t bb);
 unsigned int get_random_number();
 uint64_t get_random_bitboard();
+uint64_t line_mask(int sq1, int sq2);
+void init_diag_masks();
 
 #endif

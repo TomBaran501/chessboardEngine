@@ -593,4 +593,5 @@ void init_bitboards()
     // init slider pieces attacks
     init_sliders_attacks(bishop);
     init_sliders_attacks(rook);
+    init_diag_masks();
 }
