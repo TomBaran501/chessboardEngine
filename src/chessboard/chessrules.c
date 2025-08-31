@@ -10,6 +10,8 @@ const uint64_t pos_rook_castle[2][2][2] = {{{1ULL << 63, 1ULL << 61}, {1ULL << 5
 const int castling_pos[2][2] = {{62, 58}, {6, 2}};
 const uint64_t castling_empty_squares[2][2] = {{(1ULL << 61) + (1ULL << 62), (1ULL << 58) + (1ULL << 59) + (1ULL << 57)},
                                                {(1ULL << 6) + (1ULL << 5), (1ULL << 1) + (1ULL << 2) + (1ULL << 3)}};
+const uint64_t castling_safe_squares[2][2] = {{(1ULL << 61) + (1ULL << 62) + (1ULL << 60), (1ULL << 58) + (1ULL << 59) + (1ULL << 62)},
+                                              {(1ULL << 6) + (1ULL << 5) + (1ULL << 4), (1ULL << 2) + (1ULL << 3) + (1ULL << 4)}};
 
 bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
 {
@@ -48,15 +50,25 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     return false;
 }
 
-uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color)
+uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color, uint64_t attacks)
 {
+    uint64_t bloquerEchec = handle_checks(pos_king, board, color);
+    uint64_t pin_mask = FULLMASK;
+
     if (piece & board->kings)
-        return ~get_threatenned_squares(board, pos_king);
+    {
+        uint64_t threatenned_squares = get_threatenned_squares(board, pos_king);
+        attacks |= handle_roque_moves(pos_king, board, threatenned_squares);
+        return attacks & (~threatenned_squares);
+    }
 
     if (is_piece_pinned(get_lsb_index(piece), pos_king, board, color))
-        return line_mask(pos_king, get_lsb_index(piece));
+        pin_mask = line_mask(pos_king, get_lsb_index(piece));
 
-    return FULLMASK;
+    attacks &= bloquerEchec;
+    attacks &= pin_mask;
+
+    return attacks;
 }
 
 uint64_t get_attacks(int piecePos, Chessboard *chessboard, uint64_t pieces)
@@ -102,8 +114,7 @@ uint64_t handle_pawn_moves(int pos_piece, Chessboard *board)
         return masks_pawn_moves[color][pos_piece];
 }
 
-// Attention!!! rajouter la vérification des échecs sur les cases ou passent le roi
-uint64_t handle_roque_moves(int pos_piece, Chessboard *board)
+uint64_t handle_roque_moves(int pos_piece, Chessboard *board, uint64_t threatenned_squares)
 {
     uint64_t from_bitboard = create_1bit_board(pos_piece);
     if (!(from_bitboard & board->kings))
@@ -113,12 +124,14 @@ uint64_t handle_roque_moves(int pos_piece, Chessboard *board)
     uint64_t mask_roque_moves = 0;
     uint64_t occupied_squares = board->occupied_black | board->occupied_white;
 
-    if (((castling_empty_squares[color][SHORTCASTLE] & occupied_squares) == 0) && (board->castling & create_1bit_board(castling_pos[color][SHORTCASTLE])))
-        mask_roque_moves |= create_1bit_board(castling_pos[color][SHORTCASTLE]);
-
-    if (((castling_empty_squares[color][LONGCASTLE] & occupied_squares) == 0) && (board->castling & create_1bit_board(castling_pos[color][LONGCASTLE])))
-        mask_roque_moves |= create_1bit_board(castling_pos[color][LONGCASTLE]);
-
+    for (int castle = 0; castle < 2; castle++)
+    {
+        if (((castling_empty_squares[color][castle] & occupied_squares) == 0) && (board->castling & create_1bit_board(castling_pos[color][castle])))
+        {
+            if ((castling_safe_squares[color][castle] & threatenned_squares) == 0)
+                mask_roque_moves |= create_1bit_board(castling_pos[color][castle]);
+        }
+    }
     return mask_roque_moves;
 }
 

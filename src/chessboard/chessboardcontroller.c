@@ -50,13 +50,9 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
     int color = chessboard->white_to_play ? WHITE : BLACK;
     int king_square = get_lsb_index(playerPieces & chessboard->kings);
 
-    uint64_t bloquerEchec = handle_checks(king_square, chessboard, color);
-
     uint64_t attacks = getattacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
-    attacks |= handle_roque_moves(piecePos, chessboard);
-    attacks &= bloquerEchec;
-    attacks &= handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color);
+    attacks = handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color, attacks);
 
     attacks -= playerPieces & attacks;
 

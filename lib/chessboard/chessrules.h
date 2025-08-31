@@ -23,7 +23,7 @@ uint64_t handle_pawn_moves(int pos_piece, Chessboard *board);
 /// @param pos_piece
 /// @param board
 /// @return les roques possibles
-uint64_t handle_roque_moves(int pos_piece, Chessboard *board);
+uint64_t handle_roque_moves(int pos_piece, Chessboard *board, uint64_t threatenned_squares);
 
 /// @brief Renvoie les pieces ennemies attaquant la case square
 /// @param square
@@ -51,4 +51,4 @@ uint64_t handle_checks(int pos_king, Chessboard *board, int color);
 /// @param board
 /// @param color
 /// @return
-uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color);
+uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color, uint64_t attacks);
