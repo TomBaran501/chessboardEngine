@@ -213,6 +213,9 @@ bool play_move(Chessboard *board, Move move)
 
     if (get_short_castle(move))
         update_bitboards_movement(pos_rook_castle[color][SHORTCASTLE][0], board, pos_rook_castle[color][SHORTCASTLE][1]);
+    
+    if (board ->castling != 0)
+        update_roque_bitboard(board, move.from, color);
 
     update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);

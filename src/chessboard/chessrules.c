@@ -13,6 +13,21 @@ const uint64_t castling_empty_squares[2][2] = {{(1ULL << 61) + (1ULL << 62), (1U
 const uint64_t castling_safe_squares[2][2] = {{(1ULL << 61) + (1ULL << 62) + (1ULL << 60), (1ULL << 58) + (1ULL << 59) + (1ULL << 62)},
                                               {(1ULL << 6) + (1ULL << 5) + (1ULL << 4), (1ULL << 2) + (1ULL << 3) + (1ULL << 4)}};
 
+void update_roque_bitboard(Chessboard *board, int pos_piece, int color)
+{
+    uint64_t piece = create_1bit_board(pos_piece);
+    if (piece & board->kings)
+        board->castling ^= (1ULL << castling_pos[color][SHORTCASTLE]) + (1ULL << castling_pos[color][LONGCASTLE]);
+
+    if (piece & board->rooks)
+    {
+        if (pos_piece == get_lsb_index(pos_rook_castle[color][SHORTCASTLE][0]))
+            board->castling ^= (1ULL << castling_pos[color][SHORTCASTLE]);
+        else
+            board->castling ^= (1ULL << castling_pos[color][LONGCASTLE]);
+    }
+}
+
 bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
 {
     int r1 = pos_piece / 8;
@@ -21,7 +36,7 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     int f2 = pos_king % 8;
 
     // regarde si le roi et la piece sont alignés
-    if ((r1 != r2) && (f1 != f2) && ((r1 - f1) != (r2 - f2)) && ((r1 + f1) == (r2 + f2)))
+    if ((r1 != r2) && (f1 != f2) && ((r1 - f1) != (r2 - f2)) && ((r1 + f1) != (r2 + f2)))
         return false;
 
     uint64_t pieces = (board->occupied_black) | (board->occupied_white);
