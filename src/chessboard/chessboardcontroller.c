@@ -26,6 +26,35 @@ void handle_roque_flags(Move *move, Chessboard *chessboard)
     }
 }
 
+void handle_promotion(GenericList *moves, Chessboard *board)
+{
+    if (moves->size <= 3 && moves->size > 0)
+    {
+        int original_size = moves->size;
+        for (int i = 0; i < original_size; i++)
+        {
+            Move *move = (Move *)list_get(moves, i);
+            if ((board->pawns & (1ULL << move->from)) && (move->to / 8 == 0 || move->to / 8 == 7))
+            {
+                Move promo;
+                move->promotion_flag = PROMOTION_N;
+
+                promo = *move;
+                promo.promotion_flag = PROMOTION_B;
+                list_add(moves, &promo);
+
+                promo = *move;
+                promo.promotion_flag = PROMOTION_R;
+                list_add(moves, &promo);
+
+                promo = *move;
+                promo.promotion_flag = PROMOTION_Q;
+                list_add(moves, &promo);
+            }
+        }
+    }
+}
+
 uint64_t get_king_pos(Chessboard *board, int color)
 {
     uint64_t allies = color == WHITE ? board->occupied_white : board->occupied_black;
@@ -67,6 +96,7 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
 
         attacks = pop_bit(attacks);
     }
+    handle_promotion(moves, chessboard);
     return moves;
 }
 
@@ -167,6 +197,25 @@ void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
         board->occupied_black -= to_bitboard;
 }
 
+void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t to_bitboard)
+{
+    update_bitboard_delete_piece(board, to_bitboard);
+
+    if (promotion_flag == PROMOTION_B)
+        board->bishops |= to_bitboard;
+    else if (promotion_flag == PROMOTION_N)
+        board->knights |= to_bitboard;
+    else if (promotion_flag == PROMOTION_R)
+        board->rooks |= to_bitboard;
+    else if (promotion_flag == PROMOTION_Q)
+        board->queens |= to_bitboard;
+
+    if (board->white_to_play)
+        board->occupied_white |= to_bitboard;
+    else
+        board->occupied_black |= to_bitboard;
+}
+
 bool is_legal_move(Chessboard *board, Move *move)
 {
     GenericList *legalMoves = getalllegalmoves(board);
@@ -192,10 +241,11 @@ bool try_play_move(Chessboard *board, Move move)
 
     add_flags(&move, board);
 
-    return play_move(board, move);
+    play_move(board, move);
+    return true;
 }
 
-bool play_move(Chessboard *board, Move move)
+void play_move(Chessboard *board, Move move)
 {
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);
@@ -213,12 +263,15 @@ bool play_move(Chessboard *board, Move move)
 
     if (get_short_castle(move))
         update_bitboards_movement(pos_rook_castle[color][SHORTCASTLE][0], board, pos_rook_castle[color][SHORTCASTLE][1]);
-    
-    if (board ->castling != 0)
+
+    if (board->castling != 0)
         update_roque_bitboard(board, move.from, color);
 
     update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);
+
+    if (move.promotion_flag != 0)
+        update_bitboard_promotion(move.promotion_flag, board, to_bitboard);
 
     board->enpassant = 0;
 
@@ -229,5 +282,4 @@ bool play_move(Chessboard *board, Move move)
     }
 
     board->white_to_play = !board->white_to_play;
-    return true;
 }

@@ -20,4 +20,10 @@ GenericList *getalllegalmoves(Chessboard *chessboard);
 /// @param board l'echequier qui va être mis à jour
 /// @param move le coup à jouer
 /// @return true si le coup a été joué, false si le coup n'est pas légal
-bool play_move(Chessboard *board, Move move);
+void play_move(Chessboard *board, Move move);
+
+/// @brief Check if the move is legal before playing it
+/// @param board 
+/// @param move 
+/// @return 
+bool try_play_move(Chessboard *board, Move move);

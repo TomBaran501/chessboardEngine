@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include "chessrules.h"
 
+// Attention: l'opérateur binaire pour supprimer des bits si ils existent est le suivant: a & (~b)
+
 const int SHORTCASTLE = 0;
 const int LONGCASTLE = 1;
 
@@ -17,14 +19,15 @@ void update_roque_bitboard(Chessboard *board, int pos_piece, int color)
 {
     uint64_t piece = create_1bit_board(pos_piece);
     if (piece & board->kings)
-        board->castling ^= (1ULL << castling_pos[color][SHORTCASTLE]) + (1ULL << castling_pos[color][LONGCASTLE]);
+        board->castling &= ~((1ULL << castling_pos[color][SHORTCASTLE]) + (1ULL << castling_pos[color][LONGCASTLE]));
 
     if (piece & board->rooks)
     {
         if (pos_piece == get_lsb_index(pos_rook_castle[color][SHORTCASTLE][0]))
-            board->castling ^= (1ULL << castling_pos[color][SHORTCASTLE]);
-        else
-            board->castling ^= (1ULL << castling_pos[color][LONGCASTLE]);
+            board->castling &= ~(1ULL << castling_pos[color][SHORTCASTLE]);
+
+        else if (pos_piece == get_lsb_index(pos_rook_castle[color][LONGCASTLE][0]))
+            board->castling &= ~(1ULL << castling_pos[color][LONGCASTLE]);
     }
 }
 
@@ -48,8 +51,8 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     uint64_t candidates = get_bishop_attacks(pos_king, pieces);
     if (candidates & piece)
     {
-        uint64_t potential_attackers = get_bishop_attacks(pos_king, (pieces ^ piece)) & ennemies;
-        potential_attackers ^= candidates;
+        uint64_t potential_attackers = get_bishop_attacks(pos_king, (pieces & (~piece))) & ennemies;
+        potential_attackers &= ~candidates;
         if (potential_attackers & ennemiesBQ)
             return true;
     }
@@ -57,8 +60,8 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     candidates = get_rook_attacks(pos_king, pieces);
     if (candidates & piece)
     {
-        uint64_t potential_attackers = get_rook_attacks(pos_king, (pieces ^ piece)) & ennemies;
-        potential_attackers ^= candidates;
+        uint64_t potential_attackers = get_rook_attacks(pos_king, (pieces & (~piece))) & ennemies;
+        potential_attackers &= ~candidates;
         if (potential_attackers & ennemiesRQ)
             return true;
     }
@@ -166,7 +169,7 @@ uint64_t pieces_attacking_square(int square, Chessboard *board, int color)
 
 uint64_t get_threatenned_squares(Chessboard *board, int pos_king)
 {
-    uint64_t board_without_king = (board->occupied_black | board->occupied_white) ^ create_1bit_board(pos_king);
+    uint64_t board_without_king = (board->occupied_black | board->occupied_white) & (~create_1bit_board(pos_king));
     uint64_t ennemies = board->white_to_play ? board->occupied_black : board->occupied_white;
     uint64_t threatenned_squares = 0;
 

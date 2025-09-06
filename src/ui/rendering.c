@@ -192,7 +192,8 @@ int set_moves(Chessboard *board, GenericList *moves, int pos_piece, GenericList 
     for (int i = 0; i < moves->size; i++)
     {
         int to = (int)((Move *)moves->data)[i].to;
-        list_add(colored_squares, &to);
+        if (!is_in_list(colored_squares, &to)) // Pour les coups de promotion
+            list_add(colored_squares, &to);
     }
 
     swap_color_squares(colored_squares, 0, renderer);
@@ -207,7 +208,6 @@ void render_play_move(Chessboard *board, GenericList *moves, int to)
         if ((int)((Move *)moves->data)[i].to == to)
             move = ((Move *)moves->data)[i];
     }
-
     play_move(board, move);
 }
 

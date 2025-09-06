@@ -39,7 +39,7 @@ void run_game()
         }
 
         Move m = get_move(move);
-        if (!play_move(&board, m))
+        if (!try_play_move(&board, m))
         {
             printf("Coup invalide. Réessayez.\n");
             continue;
