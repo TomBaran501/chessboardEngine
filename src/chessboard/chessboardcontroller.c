@@ -14,6 +14,40 @@ void handle_pawn_flags(Move *move, Chessboard *chessboard)
     }
 }
 
+void update_roque_bitboard(Chessboard *board, Move *move, int color)
+{
+    int pos_piece = move->from;
+    uint64_t piece = create_1bit_board(pos_piece);
+    if (piece & board->kings)
+    {
+        board->castling &= ~((1ULL << castling_pos[color][SHORTCASTLE]) + (1ULL << castling_pos[color][LONGCASTLE]));
+        move->roque_broken = LONGCASTLEBROKEN + SHORTCASTLEBROKEN;
+    }
+
+    else if (piece & board->rooks)
+    {
+        if (pos_piece == get_lsb_index(pos_rook_castle[color][SHORTCASTLE][0]))
+        {
+            board->castling &= ~(1ULL << castling_pos[color][SHORTCASTLE]);
+            move->roque_broken = SHORTCASTLEBROKEN;
+        }
+
+        else if (pos_piece == get_lsb_index(pos_rook_castle[color][LONGCASTLE][0]))
+        {
+            board->castling &= ~(1ULL << castling_pos[color][LONGCASTLE]);
+            move->roque_broken = LONGCASTLEBROKEN;
+        }
+    }
+}
+
+void add_roque_rights(Chessboard *board, int color, uint16_t roque_broken_flag)
+{
+    if (roque_broken_flag & LONGCASTLEBROKEN)
+        board->castling |= (1ULL << castling_pos[color][LONGCASTLE]);
+    if (roque_broken_flag & SHORTCASTLEBROKEN)
+        board->castling |= (1ULL << castling_pos[color][SHORTCASTLE]);
+}
+
 void handle_roque_flags(Move *move, Chessboard *chessboard)
 {
     if (chessboard->kings & create_1bit_board(move->from))
@@ -197,6 +231,33 @@ void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
         board->occupied_black -= to_bitboard;
 }
 
+void update_bitboard_create_piece(Chessboard *board, uint64_t to_bitboard, uint16_t piece_flag, int color)
+{
+    if (piece_flag == ROOK)
+        board->rooks |= to_bitboard;
+
+    else if (piece_flag == PAWN)
+        board->pawns |= to_bitboard;
+
+    else if (piece_flag == KNIGHT)
+        board->knights |= to_bitboard;
+
+    else if (piece_flag == BISHOP)
+        board->bishops |= to_bitboard;
+
+    else if (piece_flag == QUEEN)
+        board->queens |= to_bitboard;
+
+    else if (piece_flag == KING)
+        board->kings |= to_bitboard;
+
+    if (color == WHITE)
+        board->occupied_white |= to_bitboard;
+
+    else
+        board->occupied_black |= to_bitboard;
+}
+
 void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t to_bitboard)
 {
     update_bitboard_delete_piece(board, to_bitboard);
@@ -265,7 +326,7 @@ void play_move(Chessboard *board, Move move)
         update_bitboards_movement(pos_rook_castle[color][SHORTCASTLE][0], board, pos_rook_castle[color][SHORTCASTLE][1]);
 
     if (board->castling != 0)
-        update_roque_bitboard(board, move.from, color);
+        update_roque_bitboard(board, &move, color);
 
     update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);
@@ -273,6 +334,7 @@ void play_move(Chessboard *board, Move move)
     if (move.promotion_flag != 0)
         update_bitboard_promotion(move.promotion_flag, board, to_bitboard);
 
+    move.en_passant = board->enpassant;
     board->enpassant = 0;
 
     if (get_pawn_advanced2(move))
@@ -281,5 +343,42 @@ void play_move(Chessboard *board, Move move)
         board->enpassant = create_1bit_board(dir * 8 + move.to);
     }
 
+    board->white_to_play = !board->white_to_play;
+}
+
+void unplay_move(Chessboard *board, Move move)
+{
+    uint64_t from_bitboard = create_1bit_board(move.from);
+    uint64_t to_bitboard = create_1bit_board(move.to);
+
+    int color = board->white_to_play ? WHITE : BLACK;
+    int ennemi_color = color == WHITE ? BLACK : WHITE;
+
+    if (get_enpassant(move))
+    {
+        uint64_t pos_ennemie = 1ULL << (ennemi_color == WHITE ? move.to + 8 : move.to - 8);
+        update_bitboard_create_piece(board, pos_ennemie, PAWN, color);
+    }
+
+    if (get_long_castle(move))
+        update_bitboards_movement(pos_rook_castle[ennemi_color][LONGCASTLE][1], board, pos_rook_castle[ennemi_color][LONGCASTLE][0]);
+
+    if (get_short_castle(move))
+        update_bitboards_movement(pos_rook_castle[ennemi_color][SHORTCASTLE][1], board, pos_rook_castle[ennemi_color][SHORTCASTLE][0]);
+
+    if (move.roque_broken != 0)
+        add_roque_rights(board, ennemi_color, move.roque_broken);
+
+    update_bitboards_movement(to_bitboard, board, from_bitboard);
+
+    if (move.piece_taken != NONE)
+        update_bitboard_create_piece(board, to_bitboard, move.piece_taken, color);
+
+    if (move.promotion_flag != 0)
+    {
+        update_bitboard_delete_piece(board, from_bitboard);
+        update_bitboard_create_piece(board, from_bitboard, PAWN, ennemi_color);
+    }
+    board->enpassant = move.en_passant;
     board->white_to_play = !board->white_to_play;
 }

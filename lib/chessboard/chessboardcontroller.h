@@ -23,7 +23,14 @@ GenericList *getalllegalmoves(Chessboard *chessboard);
 void play_move(Chessboard *board, Move move);
 
 /// @brief Check if the move is legal before playing it
-/// @param board 
-/// @param move 
-/// @return 
+/// @param board
+/// @param move
+/// @return
 bool try_play_move(Chessboard *board, Move move);
+
+/// @brief Permet de déjouer le coup précédent.
+/// ATTENTION: la fonction ne vérifie pas que le coup à déjouer soit valide!!!
+/// Il faut que l'utilisateur fasse attention à ce que les  coups soit déjoué dans le bon ordre
+/// @param board
+/// @param move
+void unplay_move(Chessboard *board, Move move);

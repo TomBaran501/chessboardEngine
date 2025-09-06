@@ -11,6 +11,9 @@ typedef struct
     uint16_t to : 6;             // 6 bits pour la case d'arrivée (0-63)
     uint16_t flag : 4;           // 4 bits pour les types spéciaux de mouvements
     uint16_t promotion_flag : 4; // 4 bits pour la promotion
+    uint16_t piece_taken : 4;
+    uint16_t roque_broken : 2; // Breaking long casttle or short casttle
+    uint64_t en_passant; 
 } Move;
 
 // Flags pour les promotions
@@ -21,6 +24,24 @@ enum
     PROMOTION_B = 2,
     PROMOTION_R = 3,
     PROMOTION_Q = 4,
+};
+
+// Flags pour les pièces prises
+enum
+{
+    NONE = 0,
+    QUEEN = 1,
+    KNIGHT = 2,
+    BISHOP = 3,
+    PAWN = 4,
+    ROOK = 5,
+    KING = 6,
+};
+
+enum
+{
+    LONGCASTLEBROKEN = 1,
+    SHORTCASTLEBROKEN = 2,
 };
 
 /// @brief permet d'initialiser un coup avec toutes les valeurs à 0

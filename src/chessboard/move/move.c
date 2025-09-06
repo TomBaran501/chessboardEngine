@@ -9,6 +9,10 @@ void initialise_empty_move(Move *move)
     move->flag = 0;
     move->from = 0;
     move->to = 0;
+    move->promotion_flag = 0;
+    move->piece_taken = 0;
+    move->roque_broken = 0;
+    move->en_passant = 0;
 }
 
 void initialise_move(Move *move, int from, int to)
@@ -16,6 +20,10 @@ void initialise_move(Move *move, int from, int to)
     move->flag = 0;
     move->from = from;
     move->to = to;
+    move->promotion_flag = 0;
+    move->piece_taken = 0;
+    move->roque_broken = 0;
+    move->en_passant = 0;
 }
 
 void print_move(Move *move)
