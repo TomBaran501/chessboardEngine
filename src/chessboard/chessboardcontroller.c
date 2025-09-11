@@ -119,14 +119,12 @@ void add_flags(Move *move, Chessboard *chessboard)
     handle_piece_taken_flag(move, chessboard);
 }
 
-GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
+void getlegalmoves(int piecePos, Chessboard *chessboard, GenericList *moves)
 {
-    GenericList *moves = malloc(sizeof(GenericList));
-    list_init(moves, sizeof(Move));
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
     if ((create_1bit_board(piecePos) & playerPieces) == 0)
-        return moves;
+        return;
 
     int color = chessboard->white_to_play ? WHITE : BLACK;
     int king_square = get_lsb_index(playerPieces & chessboard->kings);
@@ -149,19 +147,18 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
         attacks = pop_bit(attacks);
     }
     handle_promotion(moves, chessboard);
-    return moves;
 }
 
-GenericList *getalllegalmoves(Chessboard *chessboard)
+void getalllegalmoves(Chessboard *chessboard, GenericList *allMoves)
 {
-    GenericList *allMoves = malloc(sizeof(GenericList));
-    list_init(allMoves, sizeof(Move));
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
     while (playerPieces)
     {
         int piecePos = get_lsb_index(playerPieces);
-        GenericList *pieceMoves = getlegalmoves(piecePos, chessboard);
+        GenericList *pieceMoves = malloc(sizeof(GenericList));
+        list_init(pieceMoves, sizeof(Move));
+        getlegalmoves(piecePos, chessboard, pieceMoves);
 
         // Ajoute les mouvements de cette pièce à la liste globale
         for (int i = 0; i < pieceMoves->size; i++)
@@ -174,8 +171,6 @@ GenericList *getalllegalmoves(Chessboard *chessboard)
         free(pieceMoves);
         playerPieces = pop_bit(playerPieces); // Supprime la pièce traitée
     }
-
-    return allMoves;
 }
 
 void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64_t to_bitboard)
@@ -297,7 +292,8 @@ void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t t
 
 bool is_legal_move(Chessboard *board, Move *move)
 {
-    GenericList *legalMoves = getalllegalmoves(board);
+    GenericList *legalMoves = malloc(sizeof(GenericList));
+    getalllegalmoves(board, legalMoves);
 
     for (int i = 0; i < legalMoves->size; i++)
     {
@@ -326,7 +322,7 @@ bool try_play_move(Chessboard *board, Move move)
 
 // ATTENTION: le flag roque broken prend une valeur significative dans play_move
 //           et pas dans get_legal_move comme les autres flags
-void play_move(Chessboard *board, Move move)
+inline void play_move(Chessboard *board, Move move)
 {
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);
@@ -365,7 +361,7 @@ void play_move(Chessboard *board, Move move)
     board->white_to_play = !board->white_to_play;
 }
 
-void unplay_move(Chessboard *board, Move move)
+inline void unplay_move(Chessboard *board, Move move)
 {
     uint64_t from_bitboard = create_1bit_board(move.from);
     uint64_t to_bitboard = create_1bit_board(move.to);

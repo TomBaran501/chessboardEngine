@@ -14,7 +14,7 @@ int run_test(Chessboard board, int profondeur)
 
     GenericList *listescoups = malloc(sizeof(GenericList));
     list_init(listescoups, sizeof(Move));
-    listescoups = getalllegalmoves(&board);
+    getalllegalmoves(&board, listescoups);
 
     int total = 0;
 
@@ -27,24 +27,18 @@ int run_test(Chessboard board, int profondeur)
         unplay_move(&board, *move);
         total += nbcoups;
     }
+    list_free(listescoups);
+    free(listescoups);
     return total;
 }
 
 int perft_test(char *fen, int profondeur)
 {
     Chessboard board;
-    clock_t debut, fin;
-    double temps;
     int nbcoups;
 
     init_chessboard_from_fen(&board, fen);
-
-    printf("début_test ... \n");
-    debut = clock();
     nbcoups = run_test(board, profondeur);
-    fin = clock();
-    temps = ((double)(fin - debut)) / CLOCKS_PER_SEC;
-    printf("nb de coups à la prondeur %i: %i en %f secondes\n", profondeur, nbcoups, temps);
     return nbcoups;
 }
 

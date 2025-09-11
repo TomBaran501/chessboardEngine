@@ -26,6 +26,8 @@ void *list_get(GenericList *list, int index)
 }
 void list_free(GenericList *list)
 {
+    if (list->data)
+        free(list->data);
     list->data = NULL;
     list->size = 0;
     list->capacity = 0;
