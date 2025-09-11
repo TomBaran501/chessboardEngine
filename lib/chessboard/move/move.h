@@ -13,7 +13,7 @@ typedef struct
     uint16_t promotion_flag : 4; // 4 bits pour la promotion
     uint16_t piece_taken : 4;
     uint16_t roque_broken : 2; // Breaking long casttle or short casttle
-    uint64_t en_passant; 
+    uint64_t en_passant;
 } Move;
 
 // Flags pour les promotions

@@ -5,7 +5,7 @@
 #include <criterion/criterion.h>
 #include <time.h>
 
-char *start_pos = "RNBQKBNR/PPPPPPPP/8/8/8/8/pppppppp/rnbqkbnr w KQkq - 0 1";
+char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 int run_test(Chessboard board, int profondeur)
 {
@@ -50,9 +50,9 @@ int perft_test(char *fen, int profondeur)
 
 Test(perft_result_pos_initiale, perft_test)
 {
-    cr_assert_eq(perft_test(start_pos, 1), 20, " teste à la profondeur 1");
-    cr_assert_eq(perft_test(start_pos, 2), 400, " teste à la profondeur 2");
-    cr_assert_eq(perft_test(start_pos, 3), 8902, " teste à la profondeur 3");
-    cr_assert_eq(perft_test(start_pos, 4), 197281, " teste à la profondeur 4");
-    cr_assert_eq(perft_test(start_pos, 5), 4865609, " teste à la profondeur 5");
+    cr_assert_eq(perft_test(start_pos, 1), 20, " test à la profondeur 1");
+    cr_assert_eq(perft_test(start_pos, 2), 400, " test à la profondeur 2");
+    cr_assert_eq(perft_test(start_pos, 3), 8902, " test à la profondeur 3");
+    cr_assert_eq(perft_test(start_pos, 4), 197281, " test à la profondeur 4");
+    cr_assert_eq(perft_test(start_pos, 5), 4865609, " test à la profondeur 5");
 }

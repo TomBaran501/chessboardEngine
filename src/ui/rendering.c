@@ -152,14 +152,14 @@ void render_fen(SDL_Renderer *renderer, const char *fen)
     fen_to_texture_index['R'] = TOUR_B;
     fen_to_texture_index['r'] = TOUR_N;
 
-    int row = 7, col = 0;
-    for (const char *c = fen; *c && row >= 0; ++c)
+    int row = 0, col = 0;
+    for (const char *c = fen; *c && row < 8; ++c)
     {
         if (*c == ' ')
             break; // Fin de la partie plateau du FEN
         if (*c == '/')
         {
-            row--;
+            row++;
             col = 0;
         }
         else if (*c >= '1' && *c <= '8')
@@ -209,6 +209,8 @@ void render_play_move(Chessboard *board, GenericList *moves, int to)
             move = ((Move *)moves->data)[i];
     }
     play_move(board, move);
+    unplay_move(board, move);
+    play_move(board, move);
 }
 
 int main()
@@ -244,6 +246,7 @@ int main()
     load_textures(renderer);
 
     GenericList *colored_squares = malloc(sizeof(GenericList));
+    char *fen = malloc(100);
     list_init(colored_squares, sizeof(int));
     GenericList *moves = malloc(sizeof(GenericList));
 
@@ -253,7 +256,8 @@ int main()
     bool running = true;
     SDL_Event event;
     draw_board(renderer);
-    render_fen(renderer, return_fen_code(&board));
+    return_fen_code(&board, fen);
+    render_fen(renderer, fen);
 
     while (running)
     {
@@ -280,8 +284,8 @@ int main()
                     swap_color_squares(colored_squares, 1, renderer);
                     list_free(colored_squares);
                 }
-
-                render_fen(renderer, return_fen_code(&board));
+                return_fen_code(&board, fen);
+                render_fen(renderer, fen);
             }
         }
 
@@ -291,6 +295,7 @@ int main()
     free(colored_squares);
     list_free(moves);
     free(moves);
+    free(fen);
 
     for (int i = 0; i < 12; i++)
     {

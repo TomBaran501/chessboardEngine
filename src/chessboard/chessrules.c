@@ -73,14 +73,13 @@ uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int
     return attacks;
 }
 
-uint64_t get_attacks(int piecePos, Chessboard *chessboard, uint64_t pieces)
+uint64_t get_threats(int piecePos, Chessboard *chessboard, uint64_t pieces)
 {
     uint64_t pos = create_1bit_board(piecePos);
     int color = (chessboard->occupied_white & pos) ? WHITE : BLACK;
-    uint64_t ennemies = color == WHITE ? chessboard->occupied_black : chessboard->occupied_white;
 
     if (chessboard->pawns & pos)
-        return masks_pawn_captures[color][piecePos] & (ennemies | chessboard->enpassant);
+        return masks_pawn_captures[color][piecePos];
     else if (chessboard->knights & pos)
         return masks_knight_moves[piecePos];
     else if (chessboard->bishops & pos)
@@ -95,9 +94,17 @@ uint64_t get_attacks(int piecePos, Chessboard *chessboard, uint64_t pieces)
         return 0;
 }
 
-uint64_t getattacks(int piecePos, Chessboard *chessboard)
+uint64_t get_attacks(int piecePos, Chessboard *chessboard)
 {
-    return get_attacks(piecePos, chessboard, chessboard->occupied_black | chessboard->occupied_white);
+    uint64_t pos = create_1bit_board(piecePos);
+    int color = (chessboard->occupied_white & pos) ? WHITE : BLACK;
+    uint64_t ennemies = color == WHITE ? chessboard->occupied_black : chessboard->occupied_white;
+
+    uint64_t att = get_threats(piecePos, chessboard, chessboard->occupied_black | chessboard->occupied_white);
+    if (pos & chessboard->pawns)
+        return att & (ennemies | chessboard->enpassant);
+    else
+        return att;
 }
 
 uint64_t handle_pawn_moves(int pos_piece, Chessboard *board)
@@ -162,7 +169,7 @@ uint64_t get_threatenned_squares(Chessboard *board, int pos_king)
         int square = get_lsb_index(ennemies);
         ennemies = pop_bit(ennemies);
 
-        threatenned_squares |= get_attacks(square, board, board_without_king);
+        threatenned_squares |= get_threats(square, board, board_without_king);
     }
     return threatenned_squares;
 }

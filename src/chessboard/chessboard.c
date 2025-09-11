@@ -124,8 +124,7 @@ char *return_fen_code(Chessboard *board, char *fen)
             sprintf(tmp, "%d", empty);
             strcat(fen, tmp);
         }
-        if (rank > 0)
-            strcat(fen, "/");
+        strcat(fen, "/");
     }
 
     // Tour de jeu

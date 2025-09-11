@@ -26,11 +26,6 @@ void initialise_move(Move *move, int from, int to)
     move->en_passant = 0;
 }
 
-void print_move(Move *move)
-{
-    printf("Move from %d to %d with flag %d\n", move->from, move->to, move->flag);
-}
-
 bool get_long_castle(Move move)
 {
     return (move.flag & 1) == 1;
@@ -104,6 +99,24 @@ int square_to_index(char file, char rank)
     return (7 - rank + '1') * 8 + (file - 'a');
 }
 
+void index_to_square(int index, char square[3])
+{
+    if (index < 0 || index > 63)
+    {
+        square[0] = '?';
+        square[1] = '?';
+        square[2] = '\0';
+        return;
+    }
+
+    int f = index % 8; // colonne (0=a ... 7=h)
+    int r = index / 8; // ligne (0 = rangée 1)
+
+    square[0] = 'a' + f;
+    square[1] = '8' - r;
+    square[2] = '\0';
+}
+
 Move get_move(char move[10])
 {
     Move m = {0};
@@ -144,4 +157,13 @@ Move get_move(char move[10])
     }
 
     return m;
+}
+
+void print_move(Move *move)
+{
+    char f[3];
+    char t[3];
+    index_to_square(move->from, f);
+    index_to_square(move->to, t);
+    printf("%s%s", f,t);
 }

@@ -10,7 +10,7 @@
 
 char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-int run_test(Chessboard board, int profondeur)
+int run_test(Chessboard board, int profondeur, int profondeur_max)
 {
     if (profondeur <= 0)
         return 1;
@@ -26,13 +26,22 @@ int run_test(Chessboard board, int profondeur)
         int nbcoups;
         Move *move = (Move *)list_get(listescoups, i);
         play_move(&board, *move);
-        nbcoups = run_test(board, profondeur - 1);
+        nbcoups = run_test(board, profondeur - 1, profondeur_max);
         unplay_move(&board, *move);
-        if (profondeur == 3)
-            printf("coup: %i vers %i: %i \n", move->from, move->to, nbcoups);
+        if (profondeur == profondeur_max)
+        {
+            print_move(move);
+            printf(": %i \n", nbcoups);
+            //print_chessboard(&board);
+        }
         total += nbcoups;
     }
     return total;
+}
+
+int run_test_with_details(Chessboard board, int profondeur)
+{
+    return run_test(board, profondeur, profondeur);
 }
 
 int perft_test(char *fen, int profondeur)
@@ -46,7 +55,7 @@ int perft_test(char *fen, int profondeur)
 
     printf("début_test ... \n");
     debut = clock();
-    nbcoups = run_test(board, profondeur);
+    nbcoups = run_test_with_details(board, profondeur);
     fin = clock();
     temps = ((double)(fin - debut)) / CLOCKS_PER_SEC;
     printf("nb de coups à la prondeur %i: %i en %f secondes\n", profondeur, nbcoups, temps);
@@ -57,11 +66,13 @@ void run_game()
 {
     Chessboard board;
     char move[10];
-    char* fen = malloc(100);
+    char *fen = malloc(100);
 
-    //perft_test("RNBQKBNR/PPP1PPPP/3P4/8/8/8/pppppppp/rnbqkbnr b KQkq - 0 1", 3);
+    
 
-    init_chessboard_from_fen(&board, start_pos);
+    perft_test("rnbqkbnr/p1ppp1pp/1p3p2/8/P7/R7/1PPPPPPP/1NBQKBNR/ w Kkq - 0 1", 1);
+
+    init_chessboard_from_fen(&board, "rnbqkbnr/p1ppp1pp/1p3p2/8/P7/R7/1PPPPPPP/1NBQKBNR/ w Kkq - 0 1");
 
     printf("Bienvenue dans le jeu d'échecs en C !\n");
     print_chessboard(&board);
@@ -91,7 +102,7 @@ void run_game()
             printf("Coup invalide. Réessayez.\n");
             continue;
         }
-        printf("%s\n",return_fen_code(&board, fen));
+        printf("%s\n", return_fen_code(&board, fen));
         print_chessboard(&board);
     }
 

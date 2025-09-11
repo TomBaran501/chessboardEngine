@@ -12,6 +12,7 @@ void handle_pawn_flags(Move *move, Chessboard *chessboard)
         else if (create_1bit_board(move->to) == chessboard->enpassant)
             set_enpassant(move, true);
     }
+    move->en_passant = chessboard->enpassant;
 }
 
 void update_roque_bitboard(Chessboard *board, Move *move, int color)
@@ -60,6 +61,22 @@ void handle_roque_flags(Move *move, Chessboard *chessboard)
     }
 }
 
+void handle_piece_taken_flag(Move *move, Chessboard *chessboard)
+{
+    if (get_enpassant(*move) || create_1bit_board(move->to) & chessboard->pawns)
+        move->piece_taken = PAWN;
+    else if (create_1bit_board(move->to) & chessboard->knights)
+        move->piece_taken = KNIGHT;
+    else if (create_1bit_board(move->to) & chessboard->queens)
+        move->piece_taken = QUEEN;
+    else if (create_1bit_board(move->to) & chessboard->bishops)
+        move->piece_taken = BISHOP;
+    else if (create_1bit_board(move->to) & chessboard->rooks)
+        move->piece_taken = ROOK;
+    else
+        move->piece_taken = NONE;
+}
+
 void handle_promotion(GenericList *moves, Chessboard *board)
 {
     if (moves->size <= 3 && moves->size > 0)
@@ -99,6 +116,7 @@ void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
     handle_roque_flags(move, chessboard);
+    handle_piece_taken_flag(move, chessboard);
 }
 
 GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
@@ -113,7 +131,7 @@ GenericList *getlegalmoves(int piecePos, Chessboard *chessboard)
     int color = chessboard->white_to_play ? WHITE : BLACK;
     int king_square = get_lsb_index(playerPieces & chessboard->kings);
 
-    uint64_t attacks = getattacks(piecePos, chessboard);
+    uint64_t attacks = get_attacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
     attacks = handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color, attacks);
 
@@ -306,6 +324,8 @@ bool try_play_move(Chessboard *board, Move move)
     return true;
 }
 
+// ATTENTION: le flag roque broken prend une valeur significative dans play_move
+//           et pas dans get_legal_move comme les autres flags
 void play_move(Chessboard *board, Move move)
 {
     uint64_t from_bitboard = create_1bit_board(move.from);
@@ -334,7 +354,6 @@ void play_move(Chessboard *board, Move move)
     if (move.promotion_flag != 0)
         update_bitboard_promotion(move.promotion_flag, board, to_bitboard);
 
-    move.en_passant = board->enpassant;
     board->enpassant = 0;
 
     if (get_pawn_advanced2(move))

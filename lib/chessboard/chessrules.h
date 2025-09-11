@@ -11,7 +11,7 @@ extern const uint64_t castling_empty_squares[2][2];
 /// @param piecePos
 /// @param chessboard
 /// @return
-uint64_t getattacks(int piecePos, Chessboard *chessboard);
+uint64_t get_attacks(int piecePos, Chessboard *chessboard);
 
 /// @brief Renvoie les coups possibles (hors captures) pour un pion
 /// @param pos_piece le numéro de la case du pion

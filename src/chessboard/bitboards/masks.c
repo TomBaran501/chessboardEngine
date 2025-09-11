@@ -13,139 +13,8 @@ uint64_t bishop_attacks[64][512];
 uint64_t rook_attacks[64][4096];
 
 // Bit du nombre de mouvements possibles par cases
-const int bishop_relevant_bits[64] = {
-    6,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    6,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    7,
-    7,
-    7,
-    7,
-    5,
-    5,
-    5,
-    5,
-    7,
-    9,
-    9,
-    7,
-    5,
-    5,
-    5,
-    5,
-    7,
-    9,
-    9,
-    7,
-    5,
-    5,
-    5,
-    5,
-    7,
-    7,
-    7,
-    7,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    6,
-    5,
-    5,
-    5,
-    6,
-    5,
-    5,
-    6,
-};
-
-const int rook_relevant_bits[64] = {
-    12,
-    11,
-    11,
-    11,
-    11,
-    11,
-    11,
-    12,
-    11,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    10,
-    12,
-    11,
-    11,
-    11,
-    11,
-    11,
-    11,
-    12,
-};
+int bishop_relevant_bits[64];
+int rook_relevant_bits[64];
 
 // "Magic numbers", les nombres qui permettent les indices pour les tableaux de déplacements possibles
 int64_t rook_magic_numbers[64] = {
@@ -519,7 +388,9 @@ void init_sliders_attacks(int bishop)
     {
         // init bishop & rook masks
         bishop_masks[square] = mask_bishop_attacks(square);
+        bishop_relevant_bits[square] = count_bits(bishop_masks[square]);
         rook_masks[square] = mask_rook_attacks(square);
+        rook_relevant_bits[square] = count_bits(rook_masks[square]);
 
         // init current mask
         uint64_t attack_mask = bishop ? bishop_masks[square] : rook_masks[square];
@@ -588,16 +459,19 @@ uint64_t get_rook_attacks(int square, uint64_t occupancy)
 
 void init_bitboards()
 {
-    init_king_masks();
-    init_pawn_capture_masks();
-    init_pawn_moves_masks();
-    init_knight_masks();
+    if (masks_pawn_captures[0][0] == 0)
+    {
+        init_king_masks();
+        init_pawn_capture_masks();
+        init_pawn_moves_masks();
+        init_knight_masks();
 
-    int bishop = 1;
-    int rook = 0;
+        int bishop = 1;
+        int rook = 0;
 
-    // init slider pieces attacks
-    init_sliders_attacks(bishop);
-    init_sliders_attacks(rook);
-    init_diag_masks();
+        // init slider pieces attacks
+        init_sliders_attacks(bishop);
+        init_sliders_attacks(rook);
+        init_diag_masks();
+    }
 }
