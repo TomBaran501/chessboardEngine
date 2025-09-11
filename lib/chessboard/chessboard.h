@@ -39,7 +39,7 @@ void print_chessboard(const Chessboard *board);
 
 /// @brief This function generate the fen of a position
 /// @param board the chessboard we want the fen from
-char *return_fen_code(Chessboard *board);
+char *return_fen_code(Chessboard *board, char *fen);
 
 /// @brief This function initialise the chessboard from its code fen
 /// @param board the chessboard we want to initialise

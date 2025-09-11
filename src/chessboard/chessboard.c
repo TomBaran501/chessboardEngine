@@ -71,9 +71,8 @@ void print_chessboard(const Chessboard *board)
     printf("\n \n");
 }
 
-char *return_fen_code(Chessboard *board)
+char *return_fen_code(Chessboard *board, char *fen)
 {
-    char *fen = malloc(100); // Assez grand pour contenir le FEN
     fen[0] = '\0';
 
     char piece_char[64] = {0};
@@ -97,7 +96,7 @@ char *return_fen_code(Chessboard *board)
     }
 
     // Générer la partie de la position
-    for (int rank = 7; rank >= 0; rank--)
+    for (int rank = 0; rank < 8; rank++)
     {
         int empty = 0;
         for (int file = 0; file < 8; file++)
@@ -184,7 +183,7 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
 {
     memset(board, 0, sizeof(Chessboard)); // Tout mettre à zéro
 
-    int square = 56; // Commence en haut à gauche (rank 8, file a)
+    int square = 0; // Commence en haut à gauche (rank 8, file a)
     const char *ptr = fen;
 
     // Lecture des pièces
@@ -192,7 +191,7 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
     {
         if (*ptr == '/')
         {
-            square -= 16; // Passe au rang inférieur
+            square += (8 - (square % 8)) % 8; // Passe au rang supérieur
         }
         else if (isdigit(*ptr))
         {
