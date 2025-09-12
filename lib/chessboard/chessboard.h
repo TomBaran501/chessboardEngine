@@ -46,4 +46,10 @@ char *return_fen_code(Chessboard *board, char *fen);
 /// @param fen the code of the position
 void init_chessboard_from_fen(Chessboard *board, const char *fen);
 
+void copy_chessboard(const Chessboard *src, Chessboard *dst);
+
+bool compare_chessboard(const Chessboard *a, const Chessboard *b);
+
+void print_chessboard_diff(const Chessboard *a, const Chessboard *b);
+
 #endif

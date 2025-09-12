@@ -52,6 +52,41 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     return false;
 }
 
+bool is_en_passant_legal(int pos_pawn, Chessboard *board, int color)
+{
+    int pos_king = get_lsb_index(color == WHITE ? board->occupied_white & board->kings : board->occupied_black & board->kings);
+
+    if (pos_pawn / 8 != pos_king / 8)
+        return true;
+
+    int f = get_lsb_index(board->enpassant) % 8;
+    int pos_pawn_opp = f + (pos_pawn / 8) * 8;
+
+    uint64_t pieces = (board->occupied_black) | (board->occupied_white);
+    uint64_t pawns = create_1bit_board(pos_pawn) | create_1bit_board(pos_pawn_opp);
+    uint64_t ennemies = color == WHITE ? board->occupied_black : board->occupied_white;
+    uint64_t ennemiesRQ = ennemies & (board->rooks | board->queens);
+    uint64_t potential_attackers = get_rook_attacks(pos_king, (pieces & (~pawns)));
+
+    if (potential_attackers & ennemiesRQ)
+        return false;
+
+    return true;
+}
+
+bool is_en_passant_stopping_check(uint64_t attacks, Chessboard *board, uint64_t bloquer_echec, uint64_t pawn, int color)
+{
+    if ((count_bits(bloquer_echec) != 1) || ((pawn & board->pawns) == 0) || ((bloquer_echec & board->pawns) == 0))
+        return false;
+
+    int direction = color == WHITE ? -1 : 1;
+    int pawn_taken = get_lsb_index(bloquer_echec) + direction * 8;
+
+    if ((pawn_taken == get_lsb_index(board->enpassant)) && (attacks & board->enpassant))
+        return true;
+    return false;
+}
+
 uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color, uint64_t attacks)
 {
     uint64_t bloquerEchec = handle_checks(pos_king, board, color);
@@ -67,9 +102,12 @@ uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int
     if (is_piece_pinned(get_lsb_index(piece), pos_king, board, color))
         pin_mask = line_mask(pos_king, get_lsb_index(piece));
 
-    attacks &= bloquerEchec;
-    attacks &= pin_mask;
+    if (is_en_passant_stopping_check(attacks, board, bloquerEchec, piece, color))
+        attacks = board->enpassant;
+    else
+        attacks &= bloquerEchec;
 
+    attacks &= pin_mask;
     return attacks;
 }
 
@@ -102,7 +140,14 @@ uint64_t get_attacks(int piecePos, Chessboard *chessboard)
 
     uint64_t att = get_threats(piecePos, chessboard, chessboard->occupied_black | chessboard->occupied_white);
     if (pos & chessboard->pawns)
-        return att & (ennemies | chessboard->enpassant);
+    {
+        if (att & chessboard->enpassant)
+        {
+            if (is_en_passant_legal(piecePos, chessboard, color))
+                return att & (ennemies | chessboard->enpassant);
+        }
+        return att & ennemies;
+    }
     else
         return att;
 }

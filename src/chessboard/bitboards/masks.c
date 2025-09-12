@@ -2,22 +2,22 @@
 
 // Masque pour les pieces non-linéaire
 uint64_t masks_king_moves[BOARD_SIZE];
-uint64_t masks_knight_moves[64];
+uint64_t masks_knight_moves[BOARD_SIZE];
 uint64_t masks_pawn_captures[2][BOARD_SIZE];
 uint64_t masks_pawn_moves[2][BOARD_SIZE];
 
 // Masques pour les pieces linéaires
-uint64_t bishop_masks[64];
-uint64_t rook_masks[64];
-uint64_t bishop_attacks[64][512];
-uint64_t rook_attacks[64][4096];
+uint64_t bishop_masks[BOARD_SIZE];
+uint64_t rook_masks[BOARD_SIZE];
+uint64_t bishop_attacks[BOARD_SIZE][512];
+uint64_t rook_attacks[BOARD_SIZE][4096];
 
 // Bit du nombre de mouvements possibles par cases
-int bishop_relevant_bits[64];
-int rook_relevant_bits[64];
+int bishop_relevant_bits[BOARD_SIZE];
+int rook_relevant_bits[BOARD_SIZE];
 
 // "Magic numbers", les nombres qui permettent les indices pour les tableaux de déplacements possibles
-int64_t rook_magic_numbers[64] = {
+int64_t rook_magic_numbers[BOARD_SIZE] = {
     0x8a80104000800020ULL,
     0x140002000100040ULL,
     0x2801880a0017001ULL,
@@ -83,7 +83,7 @@ int64_t rook_magic_numbers[64] = {
     0x2006104900a0804ULL,
     0x1004081002402ULL};
 
-int64_t bishop_magic_numbers[64] = {
+int64_t bishop_magic_numbers[BOARD_SIZE] = {
     0x40040844404084ULL,
     0x2004208a004208ULL,
     0x10190041080202ULL,
@@ -149,6 +149,56 @@ int64_t bishop_magic_numbers[64] = {
     0x8918844842082200ULL,
     0x4010011029020020ULL};
 
+static uint64_t globals_hash = 0;
+
+uint64_t compute_globals_hash()
+{
+    uint64_t h = 0;
+    for (int i = 0; i < BOARD_SIZE; i++)
+    {
+        h ^= rook_masks[i] * 0x9e3779b97f4a7c15ULL;
+        h ^= bishop_masks[i] * 0x94d049bb133111ebULL;
+        h ^= bishop_magic_numbers[i] * 0xbf58476d1ce4e5b9ULL;
+        h ^= rook_magic_numbers[i] * 0x94d049bb133111ebULL;
+        h ^= masks_king_moves[i] * 0x27d4eb2f165667c5ULL;
+        h ^= masks_knight_moves[i] * 0x3c6ef372fe94f82aULL;
+        h ^= masks_pawn_captures[0][i] * 0x165667b19e3779f9ULL;
+        h ^= masks_pawn_moves[0][i] * 0x9e3779b185ebca87ULL;
+        h ^= masks_pawn_captures[1][i] * 0xd6e8feb86659fd93ULL;
+        h ^= masks_pawn_moves[1][i] * 0x94d049bb133111ebULL;
+        h ^= bishop_relevant_bits[i] * 0x2545f4914f6cdd1dULL;
+        h ^= rook_relevant_bits[i] * 0x9e3779b97f4a7c15ULL;
+
+        for (int j = 0; j < 512; j++)
+        {
+            h ^= bishop_attacks[i][j] * 0xbf58476d1ce4e5b9ULL;
+        }
+        for (int j = 0; j < 4096; j++)
+        {
+            h ^= rook_attacks[i][j] * 0x94d049bb133111ebULL;
+        }
+    }
+    return h;
+}
+
+void save_globals_state()
+{
+    globals_hash = compute_globals_hash();
+}
+
+void check_globals_state()
+{
+    uint64_t current = compute_globals_hash();
+    if (current != globals_hash)
+    {
+        printf("❌ Globals have been modified!\n");
+    }
+    else
+    {
+        printf("✅ Globals unchanged.\n");
+    }
+}
+
 /// @brief Génère le mask des coups possibles pour le roi
 void init_king_masks()
 {
@@ -181,7 +231,7 @@ void init_pawn_capture_masks()
 {
     uint64_t bitmask_white;
     uint64_t bitmask_black;
-    for (int num_case = 0; num_case < 64; num_case++)
+    for (int num_case = 0; num_case < BOARD_SIZE; num_case++)
     {
         if (num_case > 7)
         {
@@ -383,8 +433,8 @@ uint64_t set_occupancy(int index, uint64_t attack_mask)
 // init slider piece's attack tables
 void init_sliders_attacks(int bishop)
 {
-    // loop over 64 board squares
-    for (int square = 0; square < 64; square++)
+    // loop over BOARD_SIZE board squares
+    for (int square = 0; square < BOARD_SIZE; square++)
     {
         // init bishop & rook masks
         bishop_masks[square] = mask_bishop_attacks(square);
@@ -411,7 +461,7 @@ void init_sliders_attacks(int bishop)
                 uint64_t occupancy = set_occupancy(index, attack_mask);
 
                 // init magic index
-                int magic_index = (occupancy * bishop_magic_numbers[square]) >> (64 - bishop_relevant_bits[square]);
+                int magic_index = (occupancy * bishop_magic_numbers[square]) >> (BOARD_SIZE - bishop_relevant_bits[square]);
 
                 // init bishop attacks
                 bishop_attacks[square][magic_index] = bishop_attacks_on_the_fly(square, occupancy);
@@ -424,7 +474,7 @@ void init_sliders_attacks(int bishop)
                 uint64_t occupancy = set_occupancy(index, attack_mask);
 
                 // init magic index
-                int magic_index = (occupancy * rook_magic_numbers[square]) >> (64 - rook_relevant_bits[square]);
+                int magic_index = (occupancy * rook_magic_numbers[square]) >> (BOARD_SIZE - rook_relevant_bits[square]);
 
                 // init bishop attacks
                 rook_attacks[square][magic_index] = rook_attacks_on_the_fly(square, occupancy);
@@ -439,7 +489,7 @@ uint64_t get_bishop_attacks(int square, uint64_t occupancy)
     // get bishop attacks assuming current board occupancy
     occupancy &= bishop_masks[square];
     occupancy *= bishop_magic_numbers[square];
-    occupancy >>= 64 - bishop_relevant_bits[square];
+    occupancy >>= BOARD_SIZE - bishop_relevant_bits[square];
 
     // return bishop attacks
     return bishop_attacks[square][occupancy];
@@ -451,7 +501,7 @@ uint64_t get_rook_attacks(int square, uint64_t occupancy)
     // get bishop attacks assuming current board occupancy
     occupancy &= rook_masks[square];
     occupancy *= rook_magic_numbers[square];
-    occupancy >>= 64 - rook_relevant_bits[square];
+    occupancy >>= BOARD_SIZE - rook_relevant_bits[square];
 
     // return rook attacks
     return rook_attacks[square][occupancy];

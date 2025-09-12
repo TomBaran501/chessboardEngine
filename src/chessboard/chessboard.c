@@ -309,3 +309,62 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
 
     init_bitboards();
 }
+
+void copy_chessboard(const Chessboard *src, Chessboard *dst)
+{
+    memcpy(dst, src, sizeof(Chessboard));
+}
+
+bool compare_chessboard(const Chessboard *a, const Chessboard *b)
+{
+    if (a->pawns != b->pawns)
+        return false;
+    if (a->knights != b->knights)
+        return false;
+    if (a->bishops != b->bishops)
+        return false;
+    if (a->rooks != b->rooks)
+        return false;
+    if (a->queens != b->queens)
+        return false;
+    if (a->kings != b->kings)
+        return false;
+    if (a->occupied_white != b->occupied_white)
+        return false;
+    if (a->occupied_black != b->occupied_black)
+        return false;
+    if (a->enpassant != b->enpassant)
+        return false;
+    if (a->castling != b->castling)
+        return false;
+    if (a->white_to_play != b->white_to_play)
+        return false;
+
+    return true;
+}
+
+void print_chessboard_diff(const Chessboard *a, const Chessboard *b)
+{
+    if (a->pawns != b->pawns)
+        printf("Diff pawns: %li vs %li\n", a->pawns, b->pawns);
+    if (a->knights != b->knights)
+        printf("Diff knights: %li vs %li\n", a->knights, b->knights);
+    if (a->bishops != b->bishops)
+        printf("Diff bishops: %li vs %li\n", a->bishops, b->bishops);
+    if (a->rooks != b->rooks)
+        printf("Diff rooks: %li vs %li\n", a->rooks, b->rooks);
+    if (a->queens != b->queens)
+        printf("Diff queens: %li vs %li\n", a->queens, b->queens);
+    if (a->kings != b->kings)
+        printf("Diff kings: %li vs %li\n", a->kings, b->kings);
+    if (a->occupied_white != b->occupied_white)
+        printf("Diff occupied_white: %li vs %li\n", a->occupied_white, b->occupied_white);
+    if (a->occupied_black != b->occupied_black)
+        printf("Diff occupied_black: %li vs %li\n", a->occupied_black, b->occupied_black);
+    if (a->enpassant != b->enpassant)
+        printf("Diff enpassant: %li vs %li\n", a->enpassant, b->enpassant);
+    if (a->castling != b->castling)
+        printf("Diff castling: %li vs %li\n", a->castling, b->castling);
+    if (a->white_to_play != b->white_to_play)
+        printf("Diff white_to_play: %d vs %d\n", a->white_to_play, b->white_to_play);
+}

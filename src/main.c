@@ -10,14 +10,14 @@
 
 char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-int run_test(Chessboard board, int profondeur, int profondeur_max)
+int run_test(Chessboard *board, int profondeur, int profondeur_max)
 {
     if (profondeur <= 0)
         return 1;
 
     GenericList *listescoups = malloc(sizeof(GenericList));
     list_init(listescoups, sizeof(Move));
-    getalllegalmoves(&board, listescoups);
+    getalllegalmoves(board, listescoups);
 
     int total = 0;
 
@@ -25,9 +25,10 @@ int run_test(Chessboard board, int profondeur, int profondeur_max)
     {
         int nbcoups;
         Move *move = (Move *)list_get(listescoups, i);
-        play_move(&board, *move);
+
+        play_move(board, *move);
         nbcoups = run_test(board, profondeur - 1, profondeur_max);
-        unplay_move(&board, *move);
+        unplay_move(board, *move);
         if (profondeur == profondeur_max)
         {
             print_move(move);
@@ -48,7 +49,7 @@ int run_test(Chessboard board, int profondeur, int profondeur_max)
 
 int run_test_with_details(Chessboard board, int profondeur)
 {
-    return run_test(board, profondeur, profondeur);
+    return run_test(&board, profondeur, profondeur);
 }
 
 int perft_test(char *fen, int profondeur)
@@ -115,7 +116,7 @@ void run_game(const char *start_fen)
 
 int main()
 {
-    perft_test("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1", 5);
-    run_game("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1");
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7);
+    run_game("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
     return 0;
 }
