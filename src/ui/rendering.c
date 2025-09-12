@@ -85,7 +85,7 @@ SDL_Color swap_square_color(int beige, int colored)
 void draw_colored_square(SDL_Renderer *renderer, int square, SDL_Color color)
 {
     int file = square % 8; // colonne (0 à 7)
-    int rank = square / 8; // ligne inversée (0 en bas, 7 en haut)
+    int rank = square / 8; // ligne
 
     SDL_Rect rect;
     rect.x = file * SQUARE_SIZE;
@@ -183,11 +183,11 @@ void render_fen(SDL_Renderer *renderer, const char *fen)
     }
 }
 
-int set_moves(Chessboard *board, GenericList *moves, int pos_piece, GenericList *colored_squares, SDL_Renderer *renderer)
+void set_moves(Chessboard *board, GenericList *moves, int pos_piece, GenericList *colored_squares, SDL_Renderer *renderer)
 {
-    list_copy(moves, getlegalmoves(pos_piece, board));
+    getlegalmoves(pos_piece, board, moves);
     if (moves->size == 0)
-        return 0;
+        return;
 
     for (int i = 0; i < moves->size; i++)
     {
@@ -195,9 +195,7 @@ int set_moves(Chessboard *board, GenericList *moves, int pos_piece, GenericList 
         if (!is_in_list(colored_squares, &to)) // Pour les coups de promotion
             list_add(colored_squares, &to);
     }
-
     swap_color_squares(colored_squares, 0, renderer);
-    return 1;
 }
 
 void render_play_move(Chessboard *board, GenericList *moves, int to)
@@ -209,7 +207,7 @@ void render_play_move(Chessboard *board, GenericList *moves, int to)
             move = ((Move *)moves->data)[i];
     }
     play_move(board, move);
-    unplay_move(board, move);
+    unplay_move(board, move); // Pour tester unplay_move
     play_move(board, move);
 }
 
@@ -246,9 +244,11 @@ int main()
     load_textures(renderer);
 
     GenericList *colored_squares = malloc(sizeof(GenericList));
-    char *fen = malloc(100);
     list_init(colored_squares, sizeof(int));
+
+    char *fen = malloc(100);
     GenericList *moves = malloc(sizeof(GenericList));
+    list_init(moves, sizeof(Move));
 
     Chessboard board;
     init_chessboard_from_fen(&board, start_pos);
@@ -268,6 +268,7 @@ int main()
                 running = false;
 
             int square = get_colored_square(&event);
+
             if (square != -1)
             {
                 SDL_RenderClear(renderer);
@@ -283,6 +284,10 @@ int main()
 
                     swap_color_squares(colored_squares, 1, renderer);
                     list_free(colored_squares);
+                    list_init(colored_squares, sizeof(int));
+                    list_free(moves);
+                    list_init(moves, sizeof(Move));
+
                 }
                 return_fen_code(&board, fen);
                 render_fen(renderer, fen);
@@ -292,6 +297,7 @@ int main()
         SDL_RenderPresent(renderer);
     }
 
+    list_free(colored_squares);
     free(colored_squares);
     list_free(moves);
     free(moves);

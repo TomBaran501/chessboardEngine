@@ -30,8 +30,9 @@ int run_test(Chessboard board, int profondeur, int profondeur_max)
         unplay_move(&board, *move);
         if (profondeur == profondeur_max)
         {
-            // print_move(move);
-            // printf(": %i \n", nbcoups);
+            print_move(move);
+            printf(": %i \n", nbcoups);
+            //print_chessboard(&board);
         }
         total += nbcoups;
     }
@@ -64,13 +65,13 @@ int perft_test(char *fen, int profondeur)
     return nbcoups;
 }
 
-void run_game()
+void run_game(const char *start_fen)
 {
     Chessboard board;
     char move[10];
     char *fen = malloc(100);
 
-    init_chessboard_from_fen(&board, "rnbqkbnr/p1ppp1pp/1p3p2/8/P7/R7/1PPPPPPP/1NBQKBNR/ w Kkq - 0 1");
+    init_chessboard_from_fen(&board, start_fen);
 
     printf("Bienvenue dans le jeu d'échecs en C !\n");
     print_chessboard(&board);
@@ -95,7 +96,7 @@ void run_game()
         }
 
         Move m = get_move(move);
-        if (!try_play_move(&board, m))
+        if (!try_play_move(&board, &m))
         {
             printf("Coup invalide. Réessayez.\n");
             continue;
@@ -109,7 +110,7 @@ void run_game()
 
 int main()
 {
-    perft_test(start_pos, 5);
-    // run_game();
+    perft_test(start_pos, 6);
+    run_game(start_pos);
     return 0;
 }

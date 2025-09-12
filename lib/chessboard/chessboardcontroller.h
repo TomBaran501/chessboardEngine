@@ -26,7 +26,7 @@ void play_move(Chessboard *board, Move move);
 /// @param board
 /// @param move
 /// @return
-bool try_play_move(Chessboard *board, Move move);
+bool try_play_move(Chessboard *board, Move *move);
 
 /// @brief Permet de déjouer le coup précédent.
 /// ATTENTION: la fonction ne vérifie pas que le coup à déjouer soit valide!!!

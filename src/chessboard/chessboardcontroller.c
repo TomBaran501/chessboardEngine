@@ -293,6 +293,7 @@ void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t t
 bool is_legal_move(Chessboard *board, Move *move)
 {
     GenericList *legalMoves = malloc(sizeof(GenericList));
+    list_init(legalMoves, sizeof(Move));
     getalllegalmoves(board, legalMoves);
 
     for (int i = 0; i < legalMoves->size; i++)
@@ -309,14 +310,14 @@ bool is_legal_move(Chessboard *board, Move *move)
     return false;
 }
 
-bool try_play_move(Chessboard *board, Move move)
+bool try_play_move(Chessboard *board, Move *move)
 {
-    if (!is_legal_move(board, &move))
+    if (!is_legal_move(board, move))
         return false;
 
-    add_flags(&move, board);
+    add_flags(move, board);
 
-    play_move(board, move);
+    play_move(board, *move);
     return true;
 }
 
@@ -386,7 +387,7 @@ inline void unplay_move(Chessboard *board, Move move)
 
     update_bitboards_movement(to_bitboard, board, from_bitboard);
 
-    if (move.piece_taken != NONE)
+    if (move.piece_taken != NONE && !get_enpassant(move))
         update_bitboard_create_piece(board, to_bitboard, move.piece_taken, color);
 
     if (move.promotion_flag != 0)

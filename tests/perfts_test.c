@@ -49,4 +49,5 @@ Test(perft_result_pos_initiale, perft_test)
     cr_assert_eq(perft_test(start_pos, 3), 8902, " test à la profondeur 3");
     cr_assert_eq(perft_test(start_pos, 4), 197281, " test à la profondeur 4");
     cr_assert_eq(perft_test(start_pos, 5), 4865609, " test à la profondeur 5");
+    cr_assert_eq(perft_test(start_pos, 5), 119060324, " test à la profondeur 6");
 }
