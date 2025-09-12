@@ -15,38 +15,85 @@ void handle_pawn_flags(Move *move, Chessboard *chessboard)
     move->en_passant = chessboard->enpassant;
 }
 
-void update_roque_bitboard(Chessboard *board, Move *move, int color)
+void handle_broken_roque_flag(Chessboard *board, Move *move)
 {
     int pos_piece = move->from;
     uint64_t piece = create_1bit_board(pos_piece);
+    int color = piece & board->occupied_white ? WHITE : BLACK;
+    int opp_color = color == BLACK ? WHITE : BLACK;
+
+    move->roque_broken = 0;
+
     if (piece & board->kings)
     {
-        board->castling &= ~((1ULL << castling_pos[color][SHORTCASTLE]) + (1ULL << castling_pos[color][LONGCASTLE]));
-        move->roque_broken = LONGCASTLEBROKEN + SHORTCASTLEBROKEN;
+        if (create_1bit_board(castling_pos[color][LONGCASTLE]) & board->castling)
+            move->roque_broken = LONGCASTLEBROKEN;
+        if (create_1bit_board(castling_pos[color][SHORTCASTLE]) & board->castling)
+            move->roque_broken |= SHORTCASTLEBROKEN;
     }
 
     else if (piece & board->rooks)
     {
         if (pos_piece == get_lsb_index(pos_rook_castle[color][SHORTCASTLE][0]))
         {
-            board->castling &= ~(1ULL << castling_pos[color][SHORTCASTLE]);
-            move->roque_broken = SHORTCASTLEBROKEN;
+            if (create_1bit_board(castling_pos[color][SHORTCASTLE]) & board->castling)
+                move->roque_broken = SHORTCASTLEBROKEN;
         }
 
         else if (pos_piece == get_lsb_index(pos_rook_castle[color][LONGCASTLE][0]))
         {
-            board->castling &= ~(1ULL << castling_pos[color][LONGCASTLE]);
-            move->roque_broken = LONGCASTLEBROKEN;
+            if (create_1bit_board(castling_pos[color][LONGCASTLE]) & board->castling)
+                move->roque_broken = LONGCASTLEBROKEN;
+        }
+    }
+    if (move->piece_taken == ROOK)
+    {
+        if (move->to == get_lsb_index(pos_rook_castle[opp_color][SHORTCASTLE][0]))
+        {
+            if (create_1bit_board(castling_pos[opp_color][SHORTCASTLE]) & board->castling)
+                move->roque_broken |= SHORTCASTLEBROKENOPP;
+        }
+
+        if (move->to == get_lsb_index(pos_rook_castle[opp_color][LONGCASTLE][0]))
+        {
+            if (create_1bit_board(castling_pos[opp_color][LONGCASTLE]) & board->castling)
+                move->roque_broken |= LONGCASTLEBROKENOPP;
         }
     }
 }
 
+void update_roque_bitboard(Chessboard *board, Move *move, int color)
+{
+    int opp_color = color == WHITE ? BLACK : WHITE;
+
+    if (move->roque_broken & LONGCASTLEBROKEN)
+        board->castling &= ~(1ULL << castling_pos[color][LONGCASTLE]);
+
+    if (move->roque_broken & SHORTCASTLEBROKEN)
+        board->castling &= ~(1ULL << castling_pos[color][SHORTCASTLE]);
+
+    if (move->roque_broken & SHORTCASTLEBROKENOPP)
+        board->castling &= ~(1ULL << castling_pos[opp_color][SHORTCASTLE]);
+
+    if (move->roque_broken & LONGCASTLEBROKENOPP)
+        board->castling &= ~(1ULL << castling_pos[opp_color][LONGCASTLE]);
+}
+
 void add_roque_rights(Chessboard *board, int color, uint16_t roque_broken_flag)
 {
+    int opp_color = color == WHITE ? BLACK : WHITE;
+
     if (roque_broken_flag & LONGCASTLEBROKEN)
         board->castling |= (1ULL << castling_pos[color][LONGCASTLE]);
+
     if (roque_broken_flag & SHORTCASTLEBROKEN)
         board->castling |= (1ULL << castling_pos[color][SHORTCASTLE]);
+
+    if (roque_broken_flag & SHORTCASTLEBROKENOPP)
+        board->castling |= (1ULL << castling_pos[opp_color][SHORTCASTLE]);
+
+    if (roque_broken_flag & LONGCASTLEBROKENOPP)
+        board->castling |= (1ULL << castling_pos[opp_color][LONGCASTLE]);
 }
 
 void handle_roque_flags(Move *move, Chessboard *chessboard)
@@ -117,6 +164,7 @@ void add_flags(Move *move, Chessboard *chessboard)
     handle_pawn_flags(move, chessboard);
     handle_roque_flags(move, chessboard);
     handle_piece_taken_flag(move, chessboard);
+    handle_broken_roque_flag(chessboard, move);
 }
 
 void getlegalmoves(int piecePos, Chessboard *chessboard, GenericList *moves)
@@ -321,8 +369,6 @@ bool try_play_move(Chessboard *board, Move *move)
     return true;
 }
 
-// ATTENTION: le flag roque broken prend une valeur significative dans play_move
-//           et pas dans get_legal_move comme les autres flags
 inline void play_move(Chessboard *board, Move move)
 {
     uint64_t from_bitboard = create_1bit_board(move.from);
@@ -342,8 +388,10 @@ inline void play_move(Chessboard *board, Move move)
     if (get_short_castle(move))
         update_bitboards_movement(pos_rook_castle[color][SHORTCASTLE][0], board, pos_rook_castle[color][SHORTCASTLE][1]);
 
-    if (board->castling != 0)
+    if (move.roque_broken != 0)
+    {
         update_roque_bitboard(board, &move, color);
+    }
 
     update_bitboard_delete_piece(board, to_bitboard);
     update_bitboards_movement(from_bitboard, board, to_bitboard);

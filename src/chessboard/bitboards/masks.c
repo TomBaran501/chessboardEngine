@@ -181,7 +181,7 @@ void init_pawn_capture_masks()
 {
     uint64_t bitmask_white;
     uint64_t bitmask_black;
-    for (int num_case = 0; num_case < 63; num_case++)
+    for (int num_case = 0; num_case < 64; num_case++)
     {
         if (num_case > 7)
         {

@@ -20,6 +20,7 @@ SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
 SDL_Texture *piece_textures[12];
 
 char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+char *pos = "r3k3/p1ppqpb1/bn2pnN1/3P4/1p2P3/2N2Qr1/PPPBBP1P/R3K2R/ w KQq - 0 1";
 
 void draw_board(SDL_Renderer *renderer)
 {
@@ -207,8 +208,6 @@ void render_play_move(Chessboard *board, GenericList *moves, int to)
             move = ((Move *)moves->data)[i];
     }
     play_move(board, move);
-    unplay_move(board, move); // Pour tester unplay_move
-    play_move(board, move);
 }
 
 int main()
@@ -251,7 +250,7 @@ int main()
     list_init(moves, sizeof(Move));
 
     Chessboard board;
-    init_chessboard_from_fen(&board, start_pos);
+    init_chessboard_from_fen(&board, pos);
 
     bool running = true;
     SDL_Event event;
@@ -287,7 +286,6 @@ int main()
                     list_init(colored_squares, sizeof(int));
                     list_free(moves);
                     list_init(moves, sizeof(Move));
-
                 }
                 return_fen_code(&board, fen);
                 render_fen(renderer, fen);

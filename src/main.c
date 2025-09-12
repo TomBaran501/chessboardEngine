@@ -32,8 +32,13 @@ int run_test(Chessboard board, int profondeur, int profondeur_max)
         {
             print_move(move);
             printf(": %i \n", nbcoups);
-            //print_chessboard(&board);
+            // print_chessboard(&board);
         }
+        // if (board.queens & create_1bit_board(29))
+        // {
+        //     print_move(move);
+        //     printf("\n");
+        // }
         total += nbcoups;
     }
     list_free(listescoups);
@@ -61,7 +66,7 @@ int perft_test(char *fen, int profondeur)
     fin = clock();
     temps = ((double)(fin - debut)) / CLOCKS_PER_SEC;
     printf("fin perft test \n");
-    printf("nb de coups à la prondeur %i: %i en %f secondes... %i coups/s \n", profondeur, nbcoups, temps, (int)(nbcoups/temps));
+    printf("nb de coups à la prondeur %i: %i en %f secondes... %i coups/s \n", profondeur, nbcoups, temps, (int)(nbcoups / temps));
     return nbcoups;
 }
 
@@ -110,7 +115,7 @@ void run_game(const char *start_fen)
 
 int main()
 {
-    perft_test(start_pos, 6);
-    run_game(start_pos);
+    perft_test("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1", 5);
+    run_game("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1");
     return 0;
 }

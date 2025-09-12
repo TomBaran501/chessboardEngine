@@ -12,7 +12,7 @@ const uint64_t pos_rook_castle[2][2][2] = {{{1ULL << 63, 1ULL << 61}, {1ULL << 5
 const int castling_pos[2][2] = {{62, 58}, {6, 2}};
 const uint64_t castling_empty_squares[2][2] = {{(1ULL << 61) + (1ULL << 62), (1ULL << 58) + (1ULL << 59) + (1ULL << 57)},
                                                {(1ULL << 6) + (1ULL << 5), (1ULL << 1) + (1ULL << 2) + (1ULL << 3)}};
-const uint64_t castling_safe_squares[2][2] = {{(1ULL << 61) + (1ULL << 62) + (1ULL << 60), (1ULL << 58) + (1ULL << 59) + (1ULL << 62)},
+const uint64_t castling_safe_squares[2][2] = {{(1ULL << 61) + (1ULL << 62) + (1ULL << 60), (1ULL << 58) + (1ULL << 59) + (1ULL << 60)},
                                               {(1ULL << 6) + (1ULL << 5) + (1ULL << 4), (1ULL << 2) + (1ULL << 3) + (1ULL << 4)}};
 
 bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)

@@ -12,7 +12,7 @@ typedef struct
     uint16_t flag : 4;           // 4 bits pour les types spéciaux de mouvements
     uint16_t promotion_flag : 4; // 4 bits pour la promotion
     uint16_t piece_taken : 4;
-    uint16_t roque_broken : 2; // Breaking long casttle or short casttle
+    uint16_t roque_broken : 4; // Breaking long casttle or short casttle
     uint64_t en_passant;
 } Move;
 
@@ -42,6 +42,8 @@ enum
 {
     LONGCASTLEBROKEN = 1,
     SHORTCASTLEBROKEN = 2,
+    LONGCASTLEBROKENOPP = 4,
+    SHORTCASTLEBROKENOPP = 8,
 };
 
 /// @brief permet d'initialiser un coup avec toutes les valeurs à 0

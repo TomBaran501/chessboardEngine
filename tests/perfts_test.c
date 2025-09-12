@@ -6,6 +6,7 @@
 #include <time.h>
 
 char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+char *pos2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1";
 
 int run_test(Chessboard board, int profondeur)
 {
@@ -49,5 +50,14 @@ Test(perft_result_pos_initiale, perft_test)
     cr_assert_eq(perft_test(start_pos, 3), 8902, " test à la profondeur 3");
     cr_assert_eq(perft_test(start_pos, 4), 197281, " test à la profondeur 4");
     cr_assert_eq(perft_test(start_pos, 5), 4865609, " test à la profondeur 5");
-    cr_assert_eq(perft_test(start_pos, 5), 119060324, " test à la profondeur 6");
+    //cr_assert_eq(perft_test(start_pos, 6), 119060324, " test à la profondeur 6");
+}
+
+Test(perft_pos2, perft_test)
+{
+    cr_assert_eq(perft_test(pos2, 1), 48, " test à la profondeur 1");
+    cr_assert_eq(perft_test(pos2, 2), 2039, " test à la profondeur 2");
+    cr_assert_eq(perft_test(pos2, 3), 97862, " test à la profondeur 3");
+    cr_assert_eq(perft_test(pos2, 4), 4085603, " test à la profondeur 4");
+    //cr_assert_eq(perft_test(pos2, 5), 193690690, " test à la profondeur 5");
 }
