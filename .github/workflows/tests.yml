@@ -21,10 +21,12 @@ jobs:
 
       - name: Install Criterion
         run: |
-          git clone --branch v2.4.0 https://github.com/Snaipe/Criterion.git
-          cd Criterion
+          wget https://github.com/Snaipe/Criterion/archive/refs/tags/v2.5.3.zip -O criterion.zip
+          unzip criterion.zip
+          cd Criterion-2.5.3
           cmake -B build -DCMAKE_BUILD_TYPE=Release
           sudo cmake --build build --target install
+
 
       - name: Build project
         run: make

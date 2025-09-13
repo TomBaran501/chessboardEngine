@@ -8,6 +8,7 @@
 char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 char *pos2 = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -0 1";
 char *pos3 = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
+char *pos4 = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
 
 int run_test(Chessboard *board, int profondeur)
 {
@@ -72,5 +73,14 @@ Test(perft_pos3, perft_test)
     cr_assert_eq(perft_test(pos3, 4), 43238, " test à la profondeur 4");
     cr_assert_eq(perft_test(pos3, 5), 674624, " test à la profondeur 5");
     cr_assert_eq(perft_test(pos3, 6), 11030083, " test à la profondeur 6");
-    //cr_assert_eq(perft_test(pos3, 7), 178633661, " test à la profondeur 7");
+    // cr_assert_eq(perft_test(pos3, 7), 178633661, " test à la profondeur 7");
+}
+
+Test(perft_pos4, perft_test)
+{
+    cr_assert_eq(perft_test(pos4, 1), 6, " test à la profondeur 1");
+    cr_assert_eq(perft_test(pos4, 2), 264, " test à la profondeur 2");
+    cr_assert_eq(perft_test(pos4, 3), 9467, " test à la profondeur 3");
+    cr_assert_eq(perft_test(pos4, 4), 422333, " test à la profondeur 4");
+    cr_assert_eq(perft_test(pos4, 5), 15833292, " test à la profondeur 5");
 }
