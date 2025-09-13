@@ -15,12 +15,19 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config criterion-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config git cmake
+
+      - name: Install Criterion
+        run: |
+          git clone --branch v2.4.0 https://github.com/Snaipe/Criterion.git
+          cd Criterion
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          sudo cmake --build build --target install
 
       - name: Build project
         run: make
 
       - name: Run tests
         run: make test
-
-
