@@ -33,16 +33,17 @@ Il permet de charger des positions FEN, de générer tous les coups légaux, et 
 ### Compilation
   ```bash
   make
+  ```
 
 ### Lancer le moteur
     ```bash
   ./build/chessboard
-
-Lancer les tests
+    ```
+### Lancer les tests
    ```bash
   make test
-
-✅ Fonctionnalités
+```
+### Fonctionnalités
 
  Chargement de positions via FEN ✅
 
