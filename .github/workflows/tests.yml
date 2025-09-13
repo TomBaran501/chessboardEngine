@@ -21,11 +21,8 @@ jobs:
 
       - name: Install Criterion
         run: |
-          wget https://github.com/Snaipe/Criterion/archive/refs/tags/v2.5.3.zip -O criterion.zip
-          unzip criterion.zip
-          cd Criterion-2.5.3
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
-          sudo cmake --build build --target install
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libcriterion-dev
 
 
       - name: Build project
