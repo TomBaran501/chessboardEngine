@@ -29,16 +29,11 @@ int run_test(Chessboard *board, int profondeur, int profondeur_max)
         play_move(board, *move);
         nbcoups = run_test(board, profondeur - 1, profondeur_max);
         unplay_move(board, *move);
-        if (profondeur == profondeur_max)
-        {
-            print_move(move);
-            printf(": %i \n", nbcoups);
-            // print_chessboard(&board);
-        }
-        // if (board.queens & create_1bit_board(29))
+        // if (profondeur == profondeur_max)
         // {
         //     print_move(move);
-        //     printf("\n");
+        //     printf(": %i \n", nbcoups);
+        //     // print_chessboard(&board);
         // }
         total += nbcoups;
     }
@@ -116,6 +111,11 @@ void run_game(const char *start_fen)
 
 int main()
 {
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 2);
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 3);
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 4);
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 5);
+    perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 6);
     perft_test("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", 7);
     run_game("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
     return 0;

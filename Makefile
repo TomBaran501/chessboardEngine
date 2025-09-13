@@ -73,4 +73,4 @@ test: $(OBJ_NO_MAIN) $(TEST_SRC)
 	@echo "🧪 Compilation des tests..."
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $(TEST_EXEC) -lcriterion
 	@echo "🚀 Lancement des tests..."
-	./$(TEST_EXEC)
+	ulimit -s unlimited && ./$(TEST_EXEC) --jobs 1
