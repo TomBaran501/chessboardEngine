@@ -8,14 +8,15 @@ Il permet de charger des positions FEN, de générer tous les coups légaux, et 
 ---
 
 ## 📂 Organisation du projet
-├── assets/ # Ressources (images,...)
-├── lib/
-│ └── chessboard/ # Code headers principal du moteur
-├── src/
-│ └── chessboard/ # Code source principal du moteur
-├── tests/ # Tests (Criterion)
-├── Makefile # Compilation
-└── README.md # Ce fichier
+
+    ├── assets/ # Ressources (images,...)
+    ├── lib/
+    │ └── chessboard/ # Code headers principal du moteur
+    ├── src/
+    │ └── chessboard/ # Code source principal du moteur
+    ├── tests/ # Tests (Criterion)
+    ├── Makefile # Compilation
+    └── README.md # Ce fichier
 
 
 ---
@@ -29,14 +30,17 @@ Il permet de charger des positions FEN, de générer tous les coups légaux, et 
   ```bash
   sudo apt-get install libcriterion-dev
 
-Compilation
-make
+### Compilation
+  ```bash
+  make
 
-Lancer le moteur
-./build/chessboard
+### Lancer le moteur
+    ```bash
+  ./build/chessboard
 
 Lancer les tests
-make test
+   ```bash
+  make test
 
 ✅ Fonctionnalités
 
