@@ -115,3 +115,16 @@ Planned improvements and features to make the engine stronger and more complete:
 #### UCI Protocol support
 
 - Allow communication with GUIs such as Arena, Cute Chess, or lichess-bot
+
+
+---
+
+## 📸 Screenshots
+
+### 🧵 Multi-threaded Perft Test
+Exemple d’un perft test lancé en multi-threading :  
+![Perft Test](assets/screenshots/result_perft_test_multi_threading.png)
+
+### 🎨 Graphical User Interface
+Interface graphique permettant de jouer une partie :  
+![Chessboard UI](assets/screenshots/ihm_chess_engine.png)

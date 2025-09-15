@@ -174,10 +174,6 @@ int main(void)
     char buffer[MAX_CMD];
     char current_fen[256] = {0}; // position courante sauvegardée
 
-    init_bitboards();
-    print_bitboard(masks_pawn_captures[0][0]);
-    print_bitboard(masks_pawn_captures[1][0]);
-
     printf("\n\n\n\n\n\n Chessboard Engine ready\n\n\n\n\n");
 
     while (fgets(buffer, sizeof(buffer), stdin))
