@@ -16,23 +16,18 @@ int run_test(Chessboard *board, int profondeur)
     if (profondeur <= 0)
         return 1;
 
-    GenericList *listescoups = malloc(sizeof(GenericList));
-    list_init(listescoups, sizeof(Move));
-    getalllegalmoves(board, listescoups);
+    Move liste_coups[250];
+    int nbmoves = getalllegalmoves(board, liste_coups);
 
     int total = 0;
 
-    for (int i = 0; i < listescoups->size; i++)
+    for (int i = 0; i < nbmoves; i++)
     {
-        int nbcoups;
-        Move *move = (Move *)list_get(listescoups, i);
-        play_move(board, *move);
-        nbcoups = run_test(board, profondeur - 1);
-        unplay_move(board, *move);
-        total += nbcoups;
+
+        play_move(board, liste_coups[i]);
+        total += run_test(board, profondeur - 1);
+        unplay_move(board, liste_coups[i]);
     }
-    list_free(listescoups);
-    free(listescoups);
     return total;
 }
 
@@ -87,7 +82,7 @@ Test(perft_pos4, perft_test)
     cr_assert_eq(perft_test(pos4, 5), 15833292, " test à la profondeur 5");
 }
 
-Test(perft_pos5, perft_test)
+Test(perft_pos6, perft_test)
 {
     cr_assert_eq(perft_test(pos6, 1), 46, " test à la profondeur 1");
     cr_assert_eq(perft_test(pos6, 2), 2079, " test à la profondeur 2");

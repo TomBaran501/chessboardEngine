@@ -163,7 +163,18 @@ void print_move(Move *move)
 {
     char f[3];
     char t[3];
+    char p = ' ';
     index_to_square(move->from, f);
     index_to_square(move->to, t);
-    printf("%s%s", f,t);
+
+    if (move->promotion_flag == PROMOTION_B)
+        p = 'b';
+    if (move->promotion_flag == PROMOTION_N)
+        p = 'n';
+    if (move->promotion_flag == PROMOTION_Q)
+        p = 'q';
+    if (move->promotion_flag == PROMOTION_R)
+        p = 'r';
+
+    printf("%s%s%c", f, t, p);
 }

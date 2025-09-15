@@ -9,12 +9,12 @@
 /// @param piecePos la position de la piece
 /// @param chessboard l'echequier
 /// @return la liste des coups possibles
-void getlegalmoves(int piecePos, Chessboard *chessboard, GenericList *moves);
+int getlegalmoves(int piecePos, Chessboard *chessboard, Move piece_moves[250]);
 
 /// @brief Récupère tous les coups légaux possibles pour toutes les pièces du joueur
 /// @param chessboard l'échiquier
 /// @return Tout les coups légaux possibles
-void getalllegalmoves(Chessboard *chessboard, GenericList *allMoves);
+int getalllegalmoves(Chessboard *chessboard, Move all_moves[250]);
 
 /// @brief Joue un coup sur l'échiquier. Cette fonction met à jour l'echequier
 /// @param board l'echequier qui va être mis à jour

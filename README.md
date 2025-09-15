@@ -30,14 +30,14 @@ Il permet de charger des positions FEN, de générer tous les coups légaux, et 
   ```bash
   sudo apt-get install libcriterion-dev
 
-### Compilation
+### Compilation avec fenêtre graphique
   ```bash
-  make
+  make ui
   ```
 
 ### Lancer le moteur
     ```bash
-  ./build/chessboard
+    make run
     ```
 ### Lancer les tests
    ```bash
@@ -45,17 +45,17 @@ Il permet de charger des positions FEN, de générer tous les coups légaux, et 
 ```
 ### Fonctionnalités
 
- Chargement de positions via FEN ✅
+ - Chargement de positions via FEN ✅
 
- Génération de tous les coups légaux ✅
+ - Génération de tous les coups légaux ✅
 
- Vérification via perft test ✅
+ - Vérification via perft test ✅
 
- Évaluation de position
+ - Évaluation de position
 
- Implémentation d’un moteur de recherche (minimax / alpha-beta)
+ - Implémentation d’un moteur de recherche (minimax / alpha-beta)
 
-🧪 CI/CD
+### 🧪 CI/CD
 
 Ce projet est testé automatiquement avec GitHub Actions.
 Les tests unitaires s’exécutent à chaque push et pull request.

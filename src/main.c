@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 199309L
+
 #include "chessboard/chessboard.h"
 #include "chessboard/bitboards/bitboard.h"
 #include "chessboard/bitboards/masks.h"
@@ -6,64 +8,122 @@
 
 #include "stdlib.h"
 #include "string.h"
+#include <pthread.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <errno.h>
 
-char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+#define MAX_CMD 512
+#define STARTPOS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-int run_test(Chessboard *board, int profondeur, int profondeur_max)
+typedef struct
+{
+    Chessboard board;
+    Move move;
+    int profondeur;
+    long long result;
+} ThreadArgs;
+
+int run_test(Chessboard *board, int profondeur)
 {
     if (profondeur <= 0)
         return 1;
 
-    GenericList *listescoups = malloc(sizeof(GenericList));
-    list_init(listescoups, sizeof(Move));
-    getalllegalmoves(board, listescoups);
+    Move liste_coups[250];
+    int nbmoves = getalllegalmoves(board, liste_coups);
 
     int total = 0;
 
-    for (int i = 0; i < listescoups->size; i++)
+    for (int i = 0; i < nbmoves; i++)
     {
         int nbcoups;
-        Move *move = (Move *)list_get(listescoups, i);
 
-        play_move(board, *move);
-        nbcoups = run_test(board, profondeur - 1, profondeur_max);
-        unplay_move(board, *move);
-        // if (profondeur == profondeur_max)
-        // {
-        //     print_move(move);
-        //     printf(": %i \n", nbcoups);
-        //     // print_chessboard(&board);
-        // }
+        play_move(board, liste_coups[i]);
+        nbcoups = run_test(board, profondeur - 1);
+        unplay_move(board, liste_coups[i]);
         total += nbcoups;
     }
-    list_free(listescoups);
-    free(listescoups);
     return total;
 }
 
-int run_test_with_details(Chessboard board, int profondeur)
+void *thread_worker(void *arg)
 {
-    return run_test(&board, profondeur, profondeur);
+    ThreadArgs *targs = (ThreadArgs *)arg;
+
+    play_move(&targs->board, targs->move);
+    targs->result = run_test(&targs->board, targs->profondeur - 1);
+    return NULL;
 }
 
-int perft_test(char *fen, int profondeur)
+uint64_t run_test_mt(Chessboard *board, int profondeur)
+{
+    if (profondeur <= 0)
+        return 1;
+
+    Move liste_coups[250];
+    int nbmoves = getalllegalmoves(board, liste_coups);
+
+    pthread_t *threads = malloc(sizeof(pthread_t) * nbmoves);
+    ThreadArgs *args = malloc(sizeof(ThreadArgs) * nbmoves);
+
+    long long total = 0;
+
+    // Lancer un thread par coup
+    for (int i = 0; i < nbmoves; i++)
+    {
+        args[i].board = *board;
+        args[i].move = liste_coups[i];
+        args[i].profondeur = profondeur;
+        args[i].result = 0;
+
+        pthread_create(&threads[i], NULL, thread_worker, &args[i]);
+    }
+
+    // Attendre la fin des threads
+    for (int i = 0; i < nbmoves; i++)
+    {
+        pthread_join(threads[i], NULL);
+        print_move(&liste_coups[i]);
+        printf(": %lld\n", args[i].result);
+
+        total += args[i].result;
+    }
+
+    free(threads);
+    free(args);
+
+    return total;
+}
+
+void perft_test(char *fen, int profondeur)
 {
     Chessboard board;
-    clock_t debut, fin;
-    double temps;
-    int nbcoups;
+    init_chessboard_from_fen(&board, (char *)fen);
 
-    init_chessboard_from_fen(&board, fen);
+    struct timespec t_start, t_end;
+    if (clock_gettime(CLOCK_MONOTONIC, &t_start) != 0)
+    {
+        perror("clock_gettime start");
+    }
 
-    printf("début perft test ... \n");
-    debut = clock();
-    nbcoups = run_test_with_details(board, profondeur);
-    fin = clock();
-    temps = ((double)(fin - debut)) / CLOCKS_PER_SEC;
-    printf("fin perft test \n");
-    printf("nb de coups à la prondeur %i: %i en %f secondes... %i coups/s \n", profondeur, nbcoups, temps, (int)(nbcoups / temps));
-    return nbcoups;
+    unsigned long long nbcoups = run_test_mt(&board, profondeur);
+
+    if (clock_gettime(CLOCK_MONOTONIC, &t_end) != 0)
+    {
+        perror("clock_gettime end");
+    }
+
+    double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
+
+    if (elapsed <= 0.0)
+        elapsed = 1e-9; // sécurité pour éviter div/0
+
+    printf("nb de coups à la profondeur %d: %llu en %.6f secondes... %.0f coups/s\n",
+           profondeur,
+           (unsigned long long)nbcoups,
+           elapsed,
+           (double)nbcoups / elapsed);
 }
 
 void run_game(const char *start_fen)
@@ -109,9 +169,61 @@ void run_game(const char *start_fen)
     free(fen);
 }
 
-int main()
+int main(void)
 {
-    perft_test("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 6);
-    run_game("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1");
+    char buffer[MAX_CMD];
+    char current_fen[256] = {0}; // position courante sauvegardée
+
+    init_bitboards();
+    print_bitboard(masks_pawn_captures[0][0]);
+    print_bitboard(masks_pawn_captures[1][0]);
+
+    printf("\n\n\n\n\n\n Chessboard Engine ready\n\n\n\n\n");
+
+    while (fgets(buffer, sizeof(buffer), stdin))
+    {
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strncmp(buffer, "quit", 4) == 0)
+        {
+            break;
+        }
+        else if (strncmp(buffer, "position fen ", 13) == 0)
+        {
+            strncpy(current_fen, buffer + 13, sizeof(current_fen) - 1);
+            printf("Position enregistrée (FEN): %s\n", current_fen);
+        }
+        else if (strncmp(buffer, "position startpos", 17) == 0)
+        {
+            strncpy(current_fen, STARTPOS, sizeof(current_fen) - 1);
+            printf("Position enregistrée (startpos)\n");
+        }
+        else if (strncmp(buffer, "go perft ", 9) == 0)
+        {
+            if (strlen(current_fen) == 0)
+            {
+                printf("Erreur: aucune position enregistrée.\n");
+                continue;
+            }
+            int depth = atoi(buffer + 9);
+            perft_test(current_fen, depth);
+        }
+        else if (strncmp(buffer, "go play", 7) == 0)
+        {
+            if (strlen(current_fen) == 0)
+            {
+                printf("Erreur: aucune position enregistrée.\n");
+                continue;
+            }
+            run_game(current_fen);
+        }
+        else if (strncmp(buffer, "help", 7) == 0)
+            printf("Command list:\n- position fen 'fen code' \n- position startpos \n- go perft n \n- go play\n\n");
+
+        else
+            printf("Commande inconnue: %s\nTry 'help' for information on commands\n", buffer);
+    }
+
+    printf("Bye!\n");
     return 0;
 }
