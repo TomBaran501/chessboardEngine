@@ -24,21 +24,26 @@ It can load FEN positions, generate all legal moves, and run **perft tests** to 
 - **gcc** or **clang**
 - **make**
 - **Criterion** for tests  
-  ```bash
+```sh
   sudo apt-get install libcriterion-dev
+```
 
 
 ### Build with GUI
-  ```bash
+```sh
   make ui
+```
+  
 
 ### Run the engine
-  ```bash
+```sh
   make run
+```
 
 ### Run tests
-  ```bash
+```sh
   make test
+```
 
 ## Features
 
