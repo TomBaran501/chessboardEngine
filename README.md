@@ -1,61 +1,112 @@
 # ♟️ Chessboard Engine
 
-[![Build & Test](https://github.com/<TON-UTILISATEUR>/<TON-REPO>/actions/workflows/build.yml/badge.svg)](https://github.com/<TON-UTILISATEUR>/<TON-REPO>/actions/workflows/build.yml)
-
-Un moteur d’échecs écrit en **C**, utilisant des **bitboards** et testé avec **Criterion**.  
-Il permet de charger des positions FEN, de générer tous les coups légaux, et de réaliser des perft tests pour valider la génération des coups.  
+A chess engine written in **C**, using **bitboards** and tested with **Criterion**.  
+It can load FEN positions, generate all legal moves, and run **perft tests** to validate move generation.  
 
 ---
 
-## 📂 Organisation du projet
+## 📂 Project Structure
 
-    ├── assets/ # Ressources (images,...)
+    ├── assets/           # Resources (images, ...)
     ├── lib/
-    │ └── chessboard/ # Code headers principal du moteur
+    │   └── chessboard/   # Engine headers
     ├── src/
-    │ └── chessboard/ # Code source principal du moteur
-    ├── tests/ # Tests (Criterion)
-    ├── Makefile # Compilation
-    └── README.md # Ce fichier
-
+    │   └── chessboard/   # Engine source code
+    ├── tests/            # Unit tests (Criterion)
+    ├── Makefile          # Build system
+    └── README.md         # This file
 
 ---
 
-## ⚡ Installation & Compilation
+## ⚡ Installation & Build
 
-### Prérequis
-- **gcc** ou **clang**
+### Requirements
+- **gcc** or **clang**
 - **make**
-- **Criterion** pour les tests  
+- **Criterion** for tests  
   ```bash
   sudo apt-get install libcriterion-dev
 
-### Compilation avec fenêtre graphique
-  ```bash
+
+### Build with GUI
+  '''bash
   make ui
-  ```
 
-### Lancer le moteur
-    ```bash
-    make run
-    ```
-### Lancer les tests
-   ```bash
+### Run the engine
+  '''bash
+  make run
+
+### Run tests
+  '''bash
   make test
-```
-### Fonctionnalités
 
- - Chargement de positions via FEN ✅
+## Features
 
- - Génération de tous les coups légaux ✅
+- Load positions via FEN ✅
 
- - Vérification via perft test ✅
+- Generate all legal moves ✅
 
- - Évaluation de position
+- Play a game through a GUI ✅
 
- - Implémentation d’un moteur de recherche (minimax / alpha-beta)
+- Validate move generation using perft tests ✅
+
+- Position evaluation (WIP)
+
+- Search engine (minimax / alpha-beta, WIP)
 
 ### 🧪 CI/CD
 
-Ce projet est testé automatiquement avec GitHub Actions.
-Les tests unitaires s’exécutent à chaque push et pull request.
+This project is automatically tested with GitHub Actions.
+Unit tests are executed on every push and pull request.
+
+Move generation is validated using perft tests.
+👉 [Perft results reference](https://www.chessprogramming.org/Perft_Results)
+
+## 🚀 Optimizations
+
+To improve performance and speed up perft tests, several optimizations have been implemented:
+
+- Bitboards: 64-bit masks to represent the board, enabling fast operations with bitwise logic.
+
+- Precomputed tables: cached attacks for "normal" pieces (knight, pawn, king) and magic bitboards for sliding pieces (rook, bishop, queen).
+
+- Multi-threaded perft: parallelized tree exploration to take advantage of multi-core CPUs.
+
+- Reduced dynamic allocations: use of preallocated arrays (Move move_list[MAX_MOVES]) to avoid unnecessary memory overhead.
+
+### ⚡ Performance:
+
+Single-thread speed: 8–10 million moves/s
+
+Multi-thread speed: 40–90 million moves/s
+(⚠️ Multi-threading is less efficient when the root position has fewer legal moves)
+
+## Future Work
+
+Planned improvements and features to make the engine stronger and more complete:
+
+#### Search improvements
+
+- Implement iterative deepening
+
+- Add alpha-beta pruning
+
+- Introduce move ordering (killer moves, history heuristic)
+
+#### Position evaluation
+
+- Material and piece-square tables
+
+- King safety and pawn structure evaluation
+
+- Mobility and control of the center
+
+#### Transposition tables
+
+- Store already-evaluated positions using Zobrist hashing
+
+- Reduce redundant calculations in search
+
+#### UCI Protocol support
+
+- Allow communication with GUIs such as Arena, Cute Chess, or lichess-bot
