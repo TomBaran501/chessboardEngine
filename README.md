@@ -29,15 +29,15 @@ It can load FEN positions, generate all legal moves, and run **perft tests** to 
 
 
 ### Build with GUI
-  '''bash
+  ```bash
   make ui
 
 ### Run the engine
-  '''bash
+  ```bash
   make run
 
 ### Run tests
-  '''bash
+  ```bash
   make test
 
 ## Features
