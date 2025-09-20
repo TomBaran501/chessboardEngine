@@ -122,7 +122,7 @@ int quiescence_search(Chessboard *board, int alpha, int beta, unsigned long long
         unplay_move(board, moves[i]);
 
         if (score >= beta)
-            return beta;
+            return score;
 
         if (score > alpha)
             alpha = score;
@@ -164,7 +164,7 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
             alpha = value;
 
         if (alpha >= beta)
-            break;
+            return alpha;
     }
     return value;
 }
@@ -200,7 +200,6 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
         int alpha = (best_score == -INFINI) ? -INFINI : best_score - window;
         int beta = (best_score == -INFINI) ? INFINI : best_score + window;
         int score;
-        int best_index = 0;
 
         while (1)
         {
@@ -221,32 +220,27 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
                 scored_moves[i].score = val;
 
                 if (val > local_best)
-                {
                     local_best = val;
-                    best_index = i;
-                }
             }
-
             score = local_best;
 
             if (score <= alpha) // fail-low
             {
-                alpha = -INFINI;
+                alpha = score - window;
                 beta = score + window;
                 continue;
             }
             else if (score >= beta) // fail-high
             {
                 alpha = score - window;
-                beta = INFINI;
+                beta = score + window;
                 continue;
             }
             else
-                break; // score dans la fenêtre
+                break;
         }
-
-        best_score = scored_moves[best_index].score;
         qsort(scored_moves, nbmoves, sizeof(ScoredMove), compare_moves_desc);
+        best_score = scored_moves[0].score;
     }
 
     return best_score;

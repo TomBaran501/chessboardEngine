@@ -14,7 +14,7 @@
 #include <errno.h>
 
 #define INFINI 1000000000
-#define MAX_QDEPTH 4
+#define MAX_QDEPTH 8
 #define MAX_DEPTH 50
 
 typedef struct

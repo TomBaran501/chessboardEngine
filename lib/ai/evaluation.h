@@ -5,6 +5,7 @@
 #define BISHOP_VALUE 330
 #define ROOK_VALUE 500
 #define QUEEN_VALUE 900
+#define MAX_VALUE 6400 // Valeur des pieces dans la position initiale
 
 extern int pawn_table[BOARD_SIZE];
 extern int knight_table[BOARD_SIZE];
