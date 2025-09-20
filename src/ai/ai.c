@@ -127,7 +127,6 @@ int quiescence_search(Chessboard *board, int alpha, int beta, unsigned long long
         if (score > alpha)
             alpha = score;
     }
-
     return alpha;
 }
 
@@ -193,33 +192,59 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
     struct timespec start;
     clock_gettime(1, &start);
 
-    int best_score = INFINI;
+    int best_score = -INFINI;
 
     for (int d = 1; d <= MAX_DEPTH; d++)
     {
+        int window = 50;
+        int alpha = (best_score == -INFINI) ? -INFINI : best_score - window;
+        int beta = (best_score == -INFINI) ? INFINI : best_score + window;
+        int score;
         int best_index = 0;
-        int alpha = -INFINI;
-        int beta = INFINI;
 
-        for (int i = 0; i < nbmoves; i++)
+        while (1)
         {
-            if (elapsed_ms(start) > time_limit_ms)
-            {
-                *true_depht = d - 1;
-                return best_score;
-            }
-            play_move(board, scored_moves[i].move);
-            int score = -alphabeta(board, d - 1, -beta, -alpha, nbcoups);
-            unplay_move(board, scored_moves[i].move);
+            int local_best = -INFINI;
 
-            scored_moves[i].score = score;
-
-            if (score > alpha)
+            for (int i = 0; i < nbmoves; i++)
             {
-                alpha = score;
-                best_index = i;
+                if (elapsed_ms(start) > time_limit_ms)
+                {
+                    *true_depht = d - 1;
+                    return best_score;
+                }
+
+                play_move(board, scored_moves[i].move);
+                int val = -alphabeta(board, d - 1, -beta, -alpha, nbcoups);
+                unplay_move(board, scored_moves[i].move);
+
+                scored_moves[i].score = val;
+
+                if (val > local_best)
+                {
+                    local_best = val;
+                    best_index = i;
+                }
             }
+
+            score = local_best;
+
+            if (score <= alpha) // fail-low
+            {
+                alpha = -INFINI;
+                beta = score + window;
+                continue;
+            }
+            else if (score >= beta) // fail-high
+            {
+                alpha = score - window;
+                beta = INFINI;
+                continue;
+            }
+            else
+                break; // score dans la fenêtre
         }
+
         best_score = scored_moves[best_index].score;
         qsort(scored_moves, nbmoves, sizeof(ScoredMove), compare_moves_desc);
     }
@@ -232,7 +257,7 @@ void *thread_worker(void *arg)
 {
     ThreadTask *task = (ThreadTask *)arg;
 
-    Chessboard local_board = task->board; // copie locale
+    Chessboard local_board = task->board;
     play_move(&local_board, task->move);
     unsigned long long nbcoups = 0;
     int true_depth = 0;
