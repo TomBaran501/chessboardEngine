@@ -5,6 +5,7 @@
 #include "chessboard/bitboards/masks.h"
 #include "chessboard/move/move.h"
 #include "chessboard/chessboardcontroller.h"
+#include "ai/ai.h"
 
 #include "stdlib.h"
 #include "string.h"

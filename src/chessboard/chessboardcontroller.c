@@ -161,12 +161,56 @@ uint64_t get_king_pos(Chessboard *board, int color)
     return get_lsb_index(allies & board->kings);
 }
 
+bool is_check(Chessboard *board)
+{
+    uint64_t allies = board->white_to_play ? board->occupied_white : board->occupied_black;
+    int color = board->white_to_play ? WHITE : BLACK;
+    int pos_king = get_lsb_index(allies & board->kings);
+
+    if (pieces_attacking_square(pos_king, board, color))
+        return true;
+    return false;
+}
+
 void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
     handle_roque_flags(move, chessboard);
     handle_piece_taken_flag(move, chessboard);
     handle_broken_roque_flag(chessboard, move);
+}
+
+int get_captures_piece(int piecePos, Chessboard *chessboard, Move piece_moves[250])
+{
+    uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
+    uint64_t ennemi_pieces = chessboard->white_to_play ? chessboard->occupied_black : chessboard->occupied_white;
+
+    if ((create_1bit_board(piecePos) & playerPieces) == 0)
+        return 0;
+
+    int color = chessboard->white_to_play ? WHITE : BLACK;
+    int king_square = get_lsb_index(playerPieces & chessboard->kings);
+
+    uint64_t attacks = get_attacks(piecePos, chessboard);
+    attacks &= ennemi_pieces;
+    attacks = handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color, attacks);
+
+    attacks -= playerPieces & attacks;
+
+    int nbmoves = count_bits(attacks);
+
+    for (int m = 0; m < nbmoves; m++)
+    {
+        Move move;
+        initialise_move(&move, piecePos, get_lsb_index(attacks));
+        add_flags(&move, chessboard);
+
+        piece_moves[m] = move;
+
+        attacks = pop_bit(attacks);
+    }
+    nbmoves += handle_promotion(piece_moves, chessboard, nbmoves);
+    return nbmoves;
 }
 
 int getlegalmoves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
@@ -199,6 +243,29 @@ int getlegalmoves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
     }
     nbmoves += handle_promotion(piece_moves, chessboard, nbmoves);
     return nbmoves;
+}
+
+int get_all_captures(Chessboard *chessboard, Move all_moves[250])
+{
+    uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
+    int icoup = 0;
+
+    while (playerPieces)
+    {
+        int piecePos = get_lsb_index(playerPieces);
+        Move piece_moves[256];
+        int nb_coups = get_captures_piece(piecePos, chessboard, piece_moves);
+
+        // Ajoute les mouvements de cette pièce à la liste globale
+        for (int i = 0; i < nb_coups; i++)
+        {
+            all_moves[icoup] = piece_moves[i];
+            icoup += 1;
+        }
+
+        playerPieces = pop_bit(playerPieces); // Supprime la pièce traitée
+    }
+    return icoup;
 }
 
 int getalllegalmoves(Chessboard *chessboard, Move all_moves[250])

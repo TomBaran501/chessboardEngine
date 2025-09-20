@@ -34,3 +34,15 @@ bool try_play_move(Chessboard *board, Move *move);
 /// @param board
 /// @param move
 void unplay_move(Chessboard *board, Move move);
+
+/// @brief Renvoie true si il y a echec
+/// @param board 
+/// @return 
+bool is_check(Chessboard *board);
+
+/// @brief Renvoie toute les captures possibles de la position
+/// @param chessboard 
+/// @param all_moves 
+/// @return 
+int get_all_captures(Chessboard *chessboard, Move captures[250]);
+

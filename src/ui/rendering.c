@@ -6,6 +6,8 @@
 #include "chessboard/chessboard.h"
 #include "chessboard/chessboardcontroller.h"
 #include "tools/dynamic_list.h"
+#include "ai/ai.h"
+#include "ai/evaluation.h"
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -250,6 +252,7 @@ int main()
 
     Chessboard board;
     init_chessboard_from_fen(&board, start_pos);
+    initialize_tables();
     int clicked_square;
 
     bool running = true;
@@ -267,33 +270,44 @@ int main()
                 running = false;
 
             int square = get_colored_square(&event);
-
-            if (square != -1)
+            if (board.white_to_play)
             {
-                Move list_moves[250];
-                SDL_RenderClear(renderer);
-                draw_board(renderer);
-
-                if (colored_squares->size == 0)
+                if (square != -1)
                 {
-                    nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
-                    clicked_square = square;
-                }
+                    Move list_moves[250];
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer);
 
-                else
-                {
-                    if (is_in_list(colored_squares, &square))
+                    if (colored_squares->size == 0)
                     {
-                        nbmoves = getlegalmoves(clicked_square, &board, list_moves);
-                        render_play_move(&board, list_moves, square, nbmoves);
+                        nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
+                        clicked_square = square;
                     }
 
-                    swap_color_squares(colored_squares, 1, renderer);
-                    list_free(colored_squares);
-                    list_init(colored_squares, sizeof(int));
-                    nbmoves = 0;
+                    else
+                    {
+                        if (is_in_list(colored_squares, &square))
+                        {
+                            nbmoves = getlegalmoves(clicked_square, &board, list_moves);
+                            render_play_move(&board, list_moves, square, nbmoves);
+                        }
+
+                        swap_color_squares(colored_squares, 1, renderer);
+                        list_free(colored_squares);
+                        list_init(colored_squares, sizeof(int));
+                        nbmoves = 0;
+                    }
+                    return_fen_code(&board, fen);
+                    render_fen(renderer, fen);
                 }
+            }
+            else
+            {
+                Move move = get_best_move(board);
+                play_move(&board, move);
                 return_fen_code(&board, fen);
+                SDL_RenderClear(renderer);
+                draw_board(renderer);
                 render_fen(renderer, fen);
             }
         }

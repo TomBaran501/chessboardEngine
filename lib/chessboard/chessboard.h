@@ -10,6 +10,7 @@
 #include "bitboard.h"
 #include "masks.h"
 
+
 // Définition de la structure Chessboard
 typedef struct
 {
