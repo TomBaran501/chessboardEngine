@@ -247,7 +247,7 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
 }
 
 // --- Gestion du multithreading ---
-void *thread_worker(void *arg)
+void *thread_worker_ai(void *arg)
 {
     ThreadTask *task = (ThreadTask *)arg;
 
@@ -285,7 +285,7 @@ Move get_best_move(Chessboard board)
         tasks[i].nbmoves = 0;
         tasks[i].true_depth = 0;
 
-        pthread_create(&threads[i], NULL, thread_worker, &tasks[i]);
+        pthread_create(&threads[i], NULL, thread_worker_ai, &tasks[i]);
     }
 
     // Attendre les threads
@@ -303,7 +303,7 @@ Move get_best_move(Chessboard board)
     int best_index = 0;
     for (int i = 0; i < nbmoves; i++)
     {
-        if (tasks[i].score > best_score)
+        if (tasks[i].score >= best_score)
         {
             best_score = tasks[i].score;
             best_index = i;

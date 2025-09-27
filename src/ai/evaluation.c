@@ -35,7 +35,7 @@ int count_material(Chessboard *board, int *total_value)
     score += count_bits(board->rooks & board->occupied_white) * ROOK_VALUE;
     score += count_bits(board->queens & board->occupied_white) * QUEEN_VALUE;
 
-    total_value += score;
+    *total_value += score;
 
     // Matériel noir (on soustrait)
 
@@ -169,8 +169,8 @@ int evaluate_position(Chessboard *board)
     int total_value = 0;
     int score = count_material(board, &total_value);
     float endgame_phase = 1.0 - ((float)total_value / (float)MAX_VALUE);
-    if (endgame_phase > 1.0)
-        endgame_phase = 1.0;
+    if (endgame_phase < 0.)
+        endgame_phase = 0.;
 
     score += (int)((1.0f - endgame_phase) * evaluate_position_ally_pieces(board) + endgame_phase * evaluate_attack_king(board));
     if (board->white_to_play)
@@ -181,7 +181,6 @@ int evaluate_position(Chessboard *board)
 
 int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
 {
-    printf("fichier: %s\n", nom_fichier);
     FILE *f = fopen(nom_fichier, "r");
     if (!f)
     {
