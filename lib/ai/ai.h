@@ -4,6 +4,7 @@
 #include "chessboard/move/move.h"
 #include "chessboard/chessboardcontroller.h"
 #include "evaluation.h"
+#include "transposition_tables.h"
 
 #include "stdlib.h"
 #include "string.h"
@@ -36,3 +37,5 @@ typedef struct
 /// @param board
 /// @return
 Move get_best_move(Chessboard board);
+
+void initialise_ai();

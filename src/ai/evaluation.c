@@ -51,7 +51,7 @@ int count_material(Chessboard *board, int *total_value)
     return score;
 }
 
-int evaluate_attack_king(Chessboard *board)
+int evaluate_attack_king_endgame(Chessboard *board)
 {
     int score = 0;
 
@@ -172,7 +172,7 @@ int evaluate_position(Chessboard *board)
     if (endgame_phase < 0.)
         endgame_phase = 0.;
 
-    score += (int)((1.0f - endgame_phase) * evaluate_position_ally_pieces(board) + endgame_phase * evaluate_attack_king(board));
+    score += (int)((1.0f - endgame_phase) * evaluate_position_ally_pieces(board) + endgame_phase * evaluate_attack_king_endgame(board));
     if (board->white_to_play)
         return score;
     else

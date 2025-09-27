@@ -321,6 +321,13 @@ Move get_best_move(Chessboard board)
     print_move(&moves[best_index]);
     printf(" is the best move with score: %d at average depth %f searching %i moves... en %.6f secondes... %.0f coups/s\n\n",
            best_score, depth, total_moves, elapsed, (double)total_moves / elapsed);
+    printf("zobrist hash: %li\n", compute_hash(&board));
 
     return moves[best_index];
+}
+
+void initialise_ai()
+{
+    initialize_tables();
+    init_zobrist();
 }

@@ -252,7 +252,7 @@ int main()
 
     Chessboard board;
     init_chessboard_from_fen(&board, start_pos);
-    initialize_tables();
+    initialise_ai();
     int clicked_square;
 
     bool running = true;
