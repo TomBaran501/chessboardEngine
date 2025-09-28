@@ -15,6 +15,7 @@
 #include <errno.h>
 
 #define INFINI 1000000000
+#define MAT 900000000
 #define MAX_QDEPTH 8
 #define MAX_DEPTH 50
 
@@ -31,6 +32,7 @@ typedef struct
     int score;
     unsigned long long nbmoves;
     int true_depth;
+    unsigned long long nb_cuts_tt;
 } ThreadTask;
 
 /// @brief Run the search for the best move in the position

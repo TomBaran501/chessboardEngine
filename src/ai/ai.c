@@ -130,8 +130,17 @@ int quiescence_search(Chessboard *board, int alpha, int beta, unsigned long long
     return alpha;
 }
 
-int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long long *nbcoups)
+int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long long *nbcoups, unsigned long long *nb_cuts_tt)
 {
+    uint64_t key = compute_hash(board);
+    TTEntry *entry = tt_probe(key, depth, alpha, beta);
+
+    if (entry)
+    {
+        *nb_cuts_tt += 1;
+        return entry->score;
+    }
+
     if (depth == 0)
         return quiescence_search(board, alpha, beta, nbcoups, 0);
 
@@ -142,7 +151,7 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
     if (nbmoves == 0)
     {
         if (is_check(board))
-            return -INFINI - depth; // mat rapide = meilleur
+            return -MAT - depth; // mat rapide = meilleur
 
         else
             return 0;
@@ -154,7 +163,7 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
     for (int i = 0; i < nbmoves; i++)
     {
         play_move(board, moves[i]);
-        int score = -alphabeta(board, depth - 1, -beta, -alpha, nbcoups);
+        int score = -alphabeta(board, depth - 1, -beta, -alpha, nbcoups, nb_cuts_tt);
         unplay_move(board, moves[i]);
 
         if (score > value)
@@ -166,10 +175,23 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
         if (alpha >= beta)
             return alpha;
     }
+
+    TTFlag flag;
+
+    if (value <= alpha)
+        flag = TT_FLAG_UPPERBOUND;
+
+    else if (value >= beta)
+        flag = TT_FLAG_LOWERBOUND;
+
+    else
+        flag = TT_FLAG_EXACT;
+
+    tt_store(key, depth, value, flag);
     return value;
 }
 
-int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time_limit_ms, int *true_depht)
+int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time_limit_ms, int *true_depth, unsigned long long *nb_cuts_tt)
 {
     Move moves[250];
     ScoredMove scored_moves[250];
@@ -178,7 +200,7 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
     if (nbmoves == 0)
     {
         if (is_check(board))
-            return -INFINI - MAX_DEPTH;
+            return -MAT - MAX_DEPTH;
         else
             return 0;
     }
@@ -193,56 +215,116 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
     clock_gettime(1, &start);
 
     int best_score = -INFINI;
+    Move pv_move = {0}; // meilleur coup trouvé à la profondeur précédente
 
     for (int d = 1; d <= MAX_DEPTH; d++)
     {
-        int window = 50;
-        int alpha = (best_score == -INFINI) ? -INFINI : best_score - window;
-        int beta = (best_score == -INFINI) ? INFINI : best_score + window;
-        int score;
+        // On met le meilleur coup potentiel en tête
+        if (pv_move.from || pv_move.to)
+        {
+            for (int i = 0; i < nbmoves; i++)
+            {
+                if (scored_moves[i].move.from == pv_move.from && scored_moves[i].move.to == pv_move.to)
+                {
+                    ScoredMove tmp = scored_moves[0];
+                    scored_moves[0] = scored_moves[i];
+                    scored_moves[i] = tmp;
+                    break;
+                }
+            }
+        }
+
+        // aspiration window
+        int window = 100;
+        int alpha = (d == 1) ? -INFINI : best_score - window;
+        int beta = (d == 1) ? INFINI : best_score + window;
+
+        int attempt = 0;
+        const int MAX_ATTEMPTS = 4;
+        int tried_full = 0;
+        int root_score = -INFINI;
 
         while (1)
         {
             int local_best = -INFINI;
+            int cur_alpha = alpha;
+            int cur_beta = beta;
 
             for (int i = 0; i < nbmoves; i++)
             {
                 if (elapsed_ms(start) > time_limit_ms)
                 {
-                    *true_depht = d - 1;
+                    *true_depth = d - 1;
                     return best_score;
                 }
 
                 play_move(board, scored_moves[i].move);
-                int val = -alphabeta(board, d - 1, -beta, -alpha, nbcoups);
+                int val = -alphabeta(board, d - 1, -cur_beta, -cur_alpha, nbcoups, nb_cuts_tt);
                 unplay_move(board, scored_moves[i].move);
 
                 scored_moves[i].score = val;
 
                 if (val > local_best)
                     local_best = val;
-            }
-            score = local_best;
 
-            if (score <= alpha) // fail-low
+                if (val > cur_alpha)
+                    cur_alpha = val;
+
+                if (cur_alpha >= cur_beta)
+                    break; // cutoff racine
+            }
+
+            root_score = local_best;
+
+            // 1) fail-low
+            if (root_score <= alpha)
             {
-                alpha = score - window;
-                beta = score + window;
+                attempt++;
+                if (tried_full || attempt >= MAX_ATTEMPTS)
+                {
+                    alpha = -INFINI;
+                    beta = INFINI;
+                    tried_full = 1;
+                }
+                else
+                {
+                    window = window * 2 + 1;
+                    alpha = root_score - window;
+                    beta = root_score + window;
+                }
                 continue;
             }
-            else if (score >= beta) // fail-high
+            // 2) fail-high
+            else if (root_score >= beta)
             {
-                alpha = score - window;
-                beta = score + window;
+                attempt++;
+                if (tried_full || attempt >= MAX_ATTEMPTS)
+                {
+                    alpha = -INFINI;
+                    beta = INFINI;
+                    tried_full = 1;
+                }
+                else
+                {
+                    window = window * 2 + 1;
+                    alpha = root_score - window;
+                    beta = root_score + window;
+                }
                 continue;
             }
-            else
-                break;
+
+            // 3) résultat valide
+            break;
         }
+
+        // ordering pour la prochaine profondeur
         qsort(scored_moves, nbmoves, sizeof(ScoredMove), compare_moves_desc);
+
         best_score = scored_moves[0].score;
+        pv_move = scored_moves[0].move; // on garde le PV
     }
 
+    *true_depth = MAX_DEPTH;
     return best_score;
 }
 
@@ -255,9 +337,11 @@ void *thread_worker_ai(void *arg)
     play_move(&local_board, task->move);
     unsigned long long nbcoups = 0;
     int true_depth = 0;
-    task->score = -iterative_deepening(&local_board, &nbcoups, 300, &true_depth);
+    unsigned long long nb_cuts_tt = 0;
+    task->score = -iterative_deepening(&local_board, &nbcoups, 300, &true_depth, &nb_cuts_tt);
     task->nbmoves = nbcoups;
     task->true_depth = true_depth + 1;
+    task->nb_cuts_tt = nb_cuts_tt;
 
     return NULL;
 }
@@ -268,6 +352,7 @@ Move get_best_move(Chessboard board)
     int nbmoves = getalllegalmoves(&board, moves);
     int total_moves = 0;
     double depth = 0;
+    int nb_cuts_tt = 0;
 
     pthread_t threads[250];
     ThreadTask tasks[250];
@@ -279,11 +364,12 @@ Move get_best_move(Chessboard board)
     // Lancer un thread par coup légal
     for (int i = 0; i < nbmoves; i++)
     {
-        tasks[i].board = board; // copie de la position
+        tasks[i].board = board;
         tasks[i].move = moves[i];
         tasks[i].score = -INFINI;
         tasks[i].nbmoves = 0;
         tasks[i].true_depth = 0;
+        tasks[i].nb_cuts_tt = 0;
 
         pthread_create(&threads[i], NULL, thread_worker_ai, &tasks[i]);
     }
@@ -294,11 +380,11 @@ Move get_best_move(Chessboard board)
         pthread_join(threads[i], NULL);
         total_moves += tasks[i].nbmoves;
         depth += tasks[i].true_depth;
+        nb_cuts_tt += tasks[i].nb_cuts_tt;
     }
 
     depth /= nbmoves;
 
-    // Choisir le meilleur coup
     int best_score = -INFINI;
     int best_index = 0;
     for (int i = 0; i < nbmoves; i++)
@@ -319,8 +405,8 @@ Move get_best_move(Chessboard board)
         elapsed = 1e-9;
 
     print_move(&moves[best_index]);
-    printf(" is the best move with score: %d at average depth %f searching %i moves... en %.6f secondes... %.0f coups/s\n\n",
-           best_score, depth, total_moves, elapsed, (double)total_moves / elapsed);
+    printf(" is the best move with score: %d at average depth %f searching %i moves... en %.6f secondes... %.0f coups/s    nb_cuts_tt: %i\n\n",
+           best_score, depth, total_moves, elapsed, (double)total_moves / elapsed, nb_cuts_tt);
     printf("zobrist hash: %li\n", compute_hash(&board));
 
     return moves[best_index];

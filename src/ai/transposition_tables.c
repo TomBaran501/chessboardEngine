@@ -154,10 +154,9 @@ uint64_t compute_hash(const Chessboard *board)
     return hash;
 }
 
-
+//A faire pour optimisation
 uint64_t update_hash(uint64_t hash, const Move *move, const Chessboard *board)
 {
-    // Pour l’instant, recalcul complet (optimisation possible plus tard)
     return compute_hash(board);
 }
 
@@ -182,7 +181,7 @@ TTEntry *tt_probe(uint64_t key, int depth, int alpha, int beta)
     return NULL;
 }
 
-void tt_store(uint64_t key, int depth, int score, TTFlag flag, Move best_move)
+void tt_store(uint64_t key, int depth, int score, TTFlag flag)
 {
     TTEntry *entry = &transposition_table[key & TT_MASK];
     if (entry->key != key || entry->depth <= depth)
@@ -191,6 +190,5 @@ void tt_store(uint64_t key, int depth, int score, TTFlag flag, Move best_move)
         entry->depth = depth;
         entry->score = score;
         entry->flag = flag;
-        entry->best_move = best_move;
     }
 }

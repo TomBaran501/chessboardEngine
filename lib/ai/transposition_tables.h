@@ -24,7 +24,6 @@ typedef struct
     int depth;      // profondeur de recherche de l’entrée
     int score;      // valeur évaluée
     TTFlag flag;    // type de valeur
-    Move best_move; // meilleur coup trouvé
 } TTEntry;
 
 // Initialise le Zobrist hashing (à appeler au lancement du programme)
@@ -37,6 +36,6 @@ uint64_t compute_hash(const Chessboard *board);
 TTEntry *tt_probe(uint64_t key, int depth, int alpha, int beta);
 
 // Stocke une nouvelle entrée dans la table
-void tt_store(uint64_t key, int depth, int score, TTFlag flag, Move best_move);
+void tt_store(uint64_t key, int depth, int score, TTFlag flag);
 
 #endif

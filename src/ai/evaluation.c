@@ -51,6 +51,8 @@ int count_material(Chessboard *board, int *total_value)
     return score;
 }
 
+// ATTENTION: utilise la variable hard-codée ally_color
+// fix later
 int evaluate_attack_king_endgame(Chessboard *board)
 {
     int score = 0;
@@ -76,6 +78,34 @@ int evaluate_attack_king_endgame(Chessboard *board)
     {
         int dst = abs(our_king_file - enemy_king_file) + abs(our_king_rank - enemy_king_rank);
         score += (14 - dst);
+    }
+
+    uint64_t ally_pieces = (color == WHITE ? board->occupied_white : board->occupied_black) & ~(board->pawns | board->kings);
+    int nb_allies = count_bits(ally_pieces);
+
+    for (int i = 0; i < nb_allies; i++)
+    {
+        int pos = __builtin_ctzll(ally_pieces);
+        int our_rank = pos / 8;
+        int our_file = pos % 8;
+
+        int dst = max(abs(our_file - enemy_king_file), abs(our_rank - enemy_king_rank));
+        score += (5 - dst);
+        ally_pieces &= ally_pieces - 1;
+    }
+
+    uint64_t ennemy_pieces = (color == BLACK ? board->occupied_white : board->occupied_black) & ~(board->pawns | board->kings);
+    int nb_ennemies = count_bits(ennemy_pieces);
+
+    for (int i = 0; i < nb_ennemies; i++)
+    {
+        int pos = __builtin_ctzll(ennemy_pieces);
+        int our_rank = pos / 8;
+        int our_file = pos % 8;
+
+        int dst = max(abs(our_file - our_king_file), abs(our_rank - our_king_rank));
+        score -= (5 - dst);
+        ennemy_pieces &= ennemy_pieces - 1;
     }
 
     if (color == WHITE)
