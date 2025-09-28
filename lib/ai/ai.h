@@ -19,12 +19,14 @@
 #define MAX_QDEPTH 8
 #define MAX_DEPTH 50
 
+#pragma once
 typedef struct
 {
     Move move;
     int score; // score obtenu à la profondeur précédente
 } ScoredMove;
 
+#pragma once
 typedef struct
 {
     Chessboard board;

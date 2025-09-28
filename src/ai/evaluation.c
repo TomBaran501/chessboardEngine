@@ -7,7 +7,7 @@ int rook_table[BOARD_SIZE];
 int queen_table[BOARD_SIZE];
 int king_table[BOARD_SIZE];
 
-int ally_color = BLACK;
+int ally_color;
 
 int abs(int x)
 {
@@ -51,8 +51,6 @@ int count_material(Chessboard *board, int *total_value)
     return score;
 }
 
-// ATTENTION: utilise la variable hard-codée ally_color
-// fix later
 int evaluate_attack_king_endgame(Chessboard *board)
 {
     int score = 0;
@@ -241,8 +239,9 @@ int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
     return 0; // succès
 }
 
-int initialize_tables()
+int initialize_tables(int color_ai)
 {
+    ally_color = color_ai;
     if (lire_piece_square_table("assets/squares_pieces_tables/pawn.txt", pawn_table) != 0)
         return -1;
     if (lire_piece_square_table("assets/squares_pieces_tables/knight.txt", knight_table) != 0)

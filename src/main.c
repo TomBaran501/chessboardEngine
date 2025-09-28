@@ -6,6 +6,7 @@
 #include "chessboard/move/move.h"
 #include "chessboard/chessboardcontroller.h"
 #include "ai/ai.h"
+#include "ui/rendering.h"
 
 #include "stdlib.h"
 #include "string.h"
@@ -173,7 +174,7 @@ void run_game(const char *start_fen)
 int main(void)
 {
     char buffer[MAX_CMD];
-    char current_fen[256] = {0}; // position courante sauvegardée
+    char current_fen[256] = STARTPOS; // position courante sauvegardée
 
     printf("\n\n\n\n\n\n Chessboard Engine ready\n\n\n\n\n");
 
@@ -205,17 +206,23 @@ int main(void)
             int depth = atoi(buffer + 9);
             perft_test(current_fen, depth);
         }
+
         else if (strncmp(buffer, "go play", 7) == 0)
         {
-            if (strlen(current_fen) == 0)
-            {
-                printf("Erreur: aucune position enregistrée.\n");
-                continue;
-            }
-            run_game(current_fen);
+            if (strncmp(buffer, "go play ui", 10) == 0)
+                if (strncmp(buffer, "go play ui -w", 10) == 0)
+                    ui_game_loop(current_fen, WHITE);
+                else
+                    ui_game_loop(current_fen, BLACK);
+
+            else
+                run_game(current_fen);
+
+            printf("End of the game ...\n\n");
         }
+
         else if (strncmp(buffer, "help", 7) == 0)
-            printf("Command list:\n- position fen 'fen code' \n- position startpos \n- go perft n \n- go play\n\n");
+            printf("Command list:\n- position fen 'fen code' \n- position startpos \n- go perft n \n- go play\n- go play ui -c (replace 'c' with 'b' for black and 'w' for white depneding on wich color you want the ai to play)\n\n");
 
         else
             printf("Commande inconnue: %s\nTry 'help' for information on commands\n", buffer);

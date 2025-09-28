@@ -14,7 +14,7 @@ TEST_EXEC := $(BUILD_DIR)/test_runner
 LDLIBS := `sdl2-config --libs` -lSDL2_image
 
 # === SOURCES ===
-SRC_FILES := $(filter-out $(UI_DIR)/rendering.c, $(shell find $(SRC_DIR) -name "*.c"))
+SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
 UI_SRC := $(filter-out $(SRC_DIR)/main.c, $(shell find $(SRC_DIR) -name "*.c"))
@@ -30,7 +30,7 @@ all: $(EXEC)
 $(EXEC): $(OBJ_FILES)
 	@mkdir -p $(BUILD_DIR)
 	@echo "🔗 Linkage (main)..."
-	$(CC) $(OBJ_FILES) -o $@
+	$(CC) $(OBJ_FILES) -o $@ $(LDLIBS)
 
 $(UI_EXEC): $(UI_OBJ)
 	@mkdir -p $(BUILD_DIR)

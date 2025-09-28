@@ -92,6 +92,7 @@ void sort_moves_heuristic(Move *moves, int nbmoves)
 
 int quiescence_search(Chessboard *board, int alpha, int beta, unsigned long long *nbcoups, int qdepth)
 {
+    *nbcoups += 1;
     if (qdepth > MAX_QDEPTH)
         return evaluate_position(board);
 
@@ -106,7 +107,6 @@ int quiescence_search(Chessboard *board, int alpha, int beta, unsigned long long
     // Générer seulement les captures (et éventuellement checks)
     Move moves[250];
     int nbmoves = get_all_captures(board, moves);
-    *nbcoups += nbmoves;
 
     qsort(moves, nbmoves, sizeof(Move), mvv_lva_compare);
 
@@ -146,7 +146,6 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
 
     Move moves[250];
     int nbmoves = getalllegalmoves(board, moves);
-    *nbcoups += nbmoves;
 
     if (nbmoves == 0)
     {
@@ -405,15 +404,13 @@ Move get_best_move(Chessboard board)
         elapsed = 1e-9;
 
     print_move(&moves[best_index]);
-    printf(" is the best move with score: %d at average depth %f searching %i moves... en %.6f secondes... %.0f coups/s    nb_cuts_tt: %i\n\n",
+    printf(" is the best move with score: %d at average depth %f evaluating %i positions... en %.6f secondes... %.0f pos/s    nb_cuts_tt: %i\n\n",
            best_score, depth, total_moves, elapsed, (double)total_moves / elapsed, nb_cuts_tt);
-    printf("zobrist hash: %li\n", compute_hash(&board));
-
     return moves[best_index];
 }
 
-void initialise_ai()
+void initialise_ai(int color_ai)
 {
-    initialize_tables();
+    initialize_tables(color_ai);
     init_zobrist();
 }

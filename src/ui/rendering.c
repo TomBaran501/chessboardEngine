@@ -1,13 +1,4 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <stdbool.h>
 #include "rendering.h"
-#include "variables.h"
-#include "chessboard/chessboard.h"
-#include "chessboard/chessboardcontroller.h"
-#include "tools/dynamic_list.h"
-#include "ai/ai.h"
-#include "ai/evaluation.h"
 
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
@@ -22,7 +13,7 @@ SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
 SDL_Texture *piece_textures[12];
 
 char *endgame = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
-char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+char *start_pos = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
 
 void draw_board(SDL_Renderer *renderer)
 {
@@ -213,7 +204,7 @@ void render_play_move(Chessboard *board, Move moves[250], int to, int nbmoves)
     play_move(board, move);
 }
 
-int main()
+int ui_game_loop(char *startpos, int color_ai)
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
@@ -252,8 +243,8 @@ int main()
     int nbmoves = 0;
 
     Chessboard board;
-    init_chessboard_from_fen(&board, start_pos);
-    initialise_ai();
+    init_chessboard_from_fen(&board, startpos);
+    initialise_ai(color_ai);
     int clicked_square;
 
     bool running = true;
@@ -271,7 +262,9 @@ int main()
                 running = false;
 
             int square = get_colored_square(&event);
-            if (board.white_to_play)
+            int color = board.white_to_play ? WHITE : BLACK;
+
+            if (color != color_ai)
             {
                 if (square != -1)
                 {
@@ -333,3 +326,8 @@ int main()
 
     return 0;
 }
+
+// int main()
+// {
+//     ui_game_loop(start_pos);
+// }
