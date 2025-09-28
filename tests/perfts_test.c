@@ -1,6 +1,5 @@
 #include "chessboard/chessboard.h"
 #include "chessboard/chessboardcontroller.h"
-#include "tools/dynamic_list.h"
 
 #include <criterion/criterion.h>
 #include <time.h>

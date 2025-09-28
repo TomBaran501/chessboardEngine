@@ -64,13 +64,14 @@ re: clean all
 TEST_DIR := tests
 TEST_SRC := $(shell find $(TEST_DIR) -name "*.c")
 
-# On prend toutes les sources SAUF main.c
-SRC_NO_MAIN := $(filter-out $(SRC_DIR)/main.c, $(SRC_FILES))
-OBJ_NO_MAIN := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_NO_MAIN))
+# On prend toutes les sources dans src/chessboard (et sous-dossiers) sauf main.c
+SRC_CHESSBOARD := $(shell find $(SRC_DIR)/chessboard -name "*.c")
+OBJ_CHESSBOARD := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_CHESSBOARD))
 
-test: $(OBJ_NO_MAIN) $(TEST_SRC)
+test: $(OBJ_CHESSBOARD) $(TEST_SRC)
 	@mkdir -p $(BUILD_DIR)
 	@echo "🧪 Compilation des tests..."
 	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $(TEST_EXEC) -lcriterion
 	@echo "🚀 Lancement des tests..."
 	ulimit -s unlimited && ./$(TEST_EXEC) --jobs 1
+

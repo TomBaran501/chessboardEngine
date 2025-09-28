@@ -210,7 +210,7 @@ int main(void)
         else if (strncmp(buffer, "go play", 7) == 0)
         {
             if (strncmp(buffer, "go play ui", 10) == 0)
-                if (strncmp(buffer, "go play ui -w", 10) == 0)
+                if (strncmp(buffer, "go play ui -w", 13) == 0)
                     ui_game_loop(current_fen, WHITE);
                 else
                     ui_game_loop(current_fen, BLACK);
