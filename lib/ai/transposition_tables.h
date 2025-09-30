@@ -6,7 +6,7 @@
 #include "chessboard/chessboard.h"
 
 // Taille de la table : puissance de 2
-#define TT_SIZE (1 << 20) // ≈ 1 million d’entrées
+#define TT_SIZE (1 << 21) // ≈ 1 million d’entrées
 #define TT_MASK (TT_SIZE - 1)
 
 // Flags pour indiquer le type de valeur stockée
@@ -24,6 +24,7 @@ typedef struct
     int depth;      // profondeur de recherche de l’entrée
     int score;      // valeur évaluée
     TTFlag flag;    // type de valeur
+    Move best_move;
 } TTEntry;
 
 // Initialise le Zobrist hashing (à appeler au lancement du programme)
@@ -36,6 +37,9 @@ uint64_t compute_hash(const Chessboard *board);
 TTEntry *tt_probe(uint64_t key, int depth, int alpha, int beta);
 
 // Stocke une nouvelle entrée dans la table
-void tt_store(uint64_t key, int depth, int score, TTFlag flag);
+void tt_store(uint64_t key, int depth, int score, TTFlag flag, Move best_move);
 
+void tt_print_stats();
+
+Move tt_get_best_move(uint64_t key);
 #endif

@@ -1,5 +1,8 @@
 #include "ai.h"
 
+struct timespec t_start;
+int max_time_ms = 100;
+
 static const int piece_value[7] = {
     0,
     900,
@@ -65,9 +68,11 @@ double elapsed_ms(struct timespec start)
            (now.tv_nsec - start.tv_nsec) / 1e6;
 }
 
-void sort_moves_heuristic(Move *moves, int nbmoves)
+void sort_moves_heuristic(Move *moves, int nbmoves, Chessboard *board)
 {
     ScoredMove temp[250];
+    uint64_t key = compute_hash(board);
+    Move best_move = tt_get_best_move(key);
 
     for (int i = 0; i < nbmoves; i++)
     {
@@ -79,6 +84,12 @@ void sort_moves_heuristic(Move *moves, int nbmoves)
 
         if (moves[i].promotion_flag)
             temp[i].score += 400;
+
+        if (best_move.from != best_move.to)
+        {
+            if (moves[i].from == best_move.from && moves[i].to == best_move.to) // A voir pour les promotions...
+                temp[i].score += 1000000;
+        }
     }
 
     qsort(temp, nbmoves, sizeof(ScoredMove), compare_moves_desc);
@@ -156,8 +167,9 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
             return 0;
     }
 
-    sort_moves_heuristic(moves, nbmoves);
+    sort_moves_heuristic(moves, nbmoves, board);
     int value = -INFINI;
+    Move best_move = moves[0];
 
     for (int i = 0; i < nbmoves; i++)
     {
@@ -166,13 +178,16 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
         unplay_move(board, moves[i]);
 
         if (score > value)
+        {
             value = score;
+            best_move = moves[i];
+        }
 
         if (value > alpha)
             alpha = value;
 
         if (alpha >= beta)
-            return alpha;
+            break;
     }
 
     TTFlag flag;
@@ -186,11 +201,11 @@ int alphabeta(Chessboard *board, int depth, int alpha, int beta, unsigned long l
     else
         flag = TT_FLAG_EXACT;
 
-    tt_store(key, depth, value, flag);
+    tt_store(key, depth, value, flag, best_move);
     return value;
 }
 
-int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time_limit_ms, int *true_depth, unsigned long long *nb_cuts_tt)
+int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int *true_depth, unsigned long long *nb_cuts_tt)
 {
     Move moves[250];
     ScoredMove scored_moves[250];
@@ -209,9 +224,6 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
         scored_moves[i].move = moves[i];
         scored_moves[i].score = 0;
     }
-
-    struct timespec start;
-    clock_gettime(1, &start);
 
     int best_score = -INFINI;
     Move pv_move = {0}; // meilleur coup trouvé à la profondeur précédente
@@ -251,7 +263,7 @@ int iterative_deepening(Chessboard *board, unsigned long long *nbcoups, int time
 
             for (int i = 0; i < nbmoves; i++)
             {
-                if (elapsed_ms(start) > time_limit_ms)
+                if (elapsed_ms(t_start) > max_time_ms)
                 {
                     *true_depth = d - 1;
                     return best_score;
@@ -337,7 +349,7 @@ void *thread_worker_ai(void *arg)
     unsigned long long nbcoups = 0;
     int true_depth = 0;
     unsigned long long nb_cuts_tt = 0;
-    task->score = -iterative_deepening(&local_board, &nbcoups, 300, &true_depth, &nb_cuts_tt);
+    task->score = -iterative_deepening(&local_board, &nbcoups, &true_depth, &nb_cuts_tt);
     task->nbmoves = nbcoups;
     task->true_depth = true_depth + 1;
     task->nb_cuts_tt = nb_cuts_tt;
@@ -349,6 +361,8 @@ Move get_best_move(Chessboard board)
 {
     Move moves[250];
     int nbmoves = getalllegalmoves(&board, moves);
+    sort_moves_heuristic(moves, nbmoves, &board);
+
     int total_moves = 0;
     double depth = 0;
     int nb_cuts_tt = 0;
@@ -356,7 +370,6 @@ Move get_best_move(Chessboard board)
     pthread_t threads[250];
     ThreadTask tasks[250];
 
-    struct timespec t_start, t_end;
     if (clock_gettime(1, &t_start) != 0)
         perror("clock_gettime start");
 
@@ -394,12 +407,7 @@ Move get_best_move(Chessboard board)
             best_index = i;
         }
     }
-
-    if (clock_gettime(1, &t_end) != 0)
-        perror("clock_gettime end");
-
-    double elapsed = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
-
+    double elapsed = elapsed_ms(t_start)/1000;
     if (elapsed <= 0.0)
         elapsed = 1e-9;
 

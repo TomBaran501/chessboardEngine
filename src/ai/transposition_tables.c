@@ -11,6 +11,9 @@ static uint64_t zobrist_side;           // pour savoir qui doit jouer
 static uint64_t zobrist_castling[16];   // états possibles du roque (4 bits)
 static uint64_t zobrist_enpassant[8];   // colonnes possibles pour en passant
 
+// Compteurs globaux
+static unsigned long long tt_filled = 0;
+static unsigned long long tt_replaced = 0;
 
 static uint64_t rand64()
 {
@@ -19,7 +22,6 @@ static uint64_t rand64()
            ((uint64_t)rand() << 16) ^
            (uint64_t)rand();
 }
-
 
 void init_zobrist()
 {
@@ -48,12 +50,10 @@ void init_zobrist()
     memset(transposition_table, 0, sizeof(transposition_table));
 }
 
-
 static inline int piece_index(int piece_type, int is_white)
 {
     return piece_type + (is_white ? 0 : 6);
 }
-
 
 uint64_t compute_hash(const Chessboard *board)
 {
@@ -154,7 +154,7 @@ uint64_t compute_hash(const Chessboard *board)
     return hash;
 }
 
-//A faire pour optimisation
+// A faire pour optimisation
 uint64_t update_hash(uint64_t hash, const Move *move, const Chessboard *board)
 {
     return compute_hash(board);
@@ -181,14 +181,43 @@ TTEntry *tt_probe(uint64_t key, int depth, int alpha, int beta)
     return NULL;
 }
 
-void tt_store(uint64_t key, int depth, int score, TTFlag flag)
+Move tt_get_best_move(uint64_t key)
 {
     TTEntry *entry = &transposition_table[key & TT_MASK];
+    if (entry->key == key && (entry->best_move.from || entry->best_move.to))
+        return entry->best_move;
+
+    Move empty = {0};
+    return empty;
+}
+
+void tt_store(uint64_t key, int depth, int score, TTFlag flag, Move best_move)
+{
+    TTEntry *entry = &transposition_table[key & TT_MASK];
+    if (entry->key == 0ULL)
+        tt_filled++;
+
+    else if (entry->key != key || entry->depth <= depth)
+        tt_replaced++;
+
     if (entry->key != key || entry->depth <= depth)
     {
         entry->key = key;
         entry->depth = depth;
         entry->score = score;
         entry->flag = flag;
+        entry->best_move = best_move;
     }
+}
+
+void tt_print_stats()
+{
+    double fill_rate = (double)tt_filled / (double)TT_SIZE * 100.0;
+    double replace_rate = 0.0;
+    if (tt_filled + tt_replaced > 0)
+        replace_rate = (double)tt_replaced / (double)(tt_filled + tt_replaced) * 100.0;
+
+    printf("TT stats:\n");
+    printf("  Entries filled:   %llu / %llu (%.2f%%)\n", tt_filled, (unsigned long long)TT_SIZE, fill_rate);
+    printf("  Entries replaced: %llu (%.2f%% of writes)\n", tt_replaced, replace_rate);
 }
