@@ -3,22 +3,18 @@ CC := gcc
 CFLAGS := -Wall -Wextra -std=c11
 
 SRC_DIR := src
-UI_DIR := src/ui
 INCLUDE_DIR := lib
 BUILD_DIR := build
 
 EXEC := $(BUILD_DIR)/chess
-UI_EXEC := $(BUILD_DIR)/chess-ui
 TEST_EXEC := $(BUILD_DIR)/test_runner
 
 LDLIBS := `sdl2-config --libs` -lSDL2_image
 
 # === SOURCES ===
 SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
+SRC_FILES := $(filter-out $(SRC_DIR)/main_ai.c, $(SRC_FILES))
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
-
-UI_SRC := $(filter-out $(SRC_DIR)/main.c, $(shell find $(SRC_DIR) -name "*.c"))
-UI_OBJ := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(UI_SRC))
 
 # === INCLUDES ===
 INCLUDE_PATHS := $(shell find $(INCLUDE_DIR) -type d)
@@ -32,11 +28,6 @@ $(EXEC): $(OBJ_FILES)
 	@echo "🔗 Linkage (main)..."
 	$(CC) $(OBJ_FILES) -o $@ $(LDLIBS)
 
-$(UI_EXEC): $(UI_OBJ)
-	@mkdir -p $(BUILD_DIR)
-	@echo "🔗 Linkage (UI)..."
-	$(CC) $(UI_OBJ) -o $@ $(LDLIBS)
-
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "🛠️  Compiling $<"
@@ -47,9 +38,6 @@ run: $(EXEC)
 	@echo "🚀 Running $(EXEC)..."
 	./$(EXEC)
 
-ui: $(UI_EXEC)
-	@echo "🖼️  Running $(UI_EXEC)..."
-	./$(UI_EXEC)
 
 # === NETTOYAGE ===
 clean:
