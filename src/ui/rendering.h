@@ -9,6 +9,12 @@
 #include <SDL2/SDL_image.h>
 #include <stdbool.h>
 
+enum
+{
+    HvH = -1,
+    AvA = 2,
+}; // pour l'attribut ia_color 
+
 #pragma once
 void draw_board(SDL_Renderer *renderer);
 

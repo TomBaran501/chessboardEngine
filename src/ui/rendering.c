@@ -245,27 +245,46 @@ int ui_game_loop(char *startpos, int color_ai)
     Chessboard board;
     init_chessboard_from_fen(&board, startpos);
     initialise_ai(color_ai);
-    int clicked_square;
 
+    int clicked_square;
     bool running = true;
+    int color;
     SDL_Event event;
+
     draw_board(renderer);
     return_fen_code(&board, fen);
     render_fen(renderer, fen);
 
     while (running)
     {
-
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
-                running = false;
-
-            int square = get_colored_square(&event);
-            int color = board.white_to_play ? WHITE : BLACK;
-
-            if (color != color_ai)
             {
+                running = false;
+                return 1;
+            }
+
+            color = board.white_to_play ? WHITE : BLACK;
+
+            // === Cas IA vs IA === A CORRIGER: impossible de quitter la partie
+            if (color_ai == 2)
+            {
+                Move move = get_best_move(board);
+                play_move(&board, move);
+                return_fen_code(&board, fen);
+                SDL_RenderClear(renderer);
+                draw_board(renderer);
+                render_fen(renderer, fen);
+                SDL_RenderPresent(renderer);
+
+                // continue;
+            }
+
+            // === Cas Humain vs Humain (color_ai = -1) ===
+            if (color_ai == -1)
+            {
+                int square = get_colored_square(&event);
                 if (square != -1)
                 {
                     Move list_moves[250];
@@ -277,7 +296,6 @@ int ui_game_loop(char *startpos, int color_ai)
                         nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
                         clicked_square = square;
                     }
-
                     else
                     {
                         if (is_in_list(colored_squares, &square))
@@ -295,14 +313,50 @@ int ui_game_loop(char *startpos, int color_ai)
                     render_fen(renderer, fen);
                 }
             }
+
+            // === Cas Humain vs IA === // A CORRIGER!!!
             else
             {
-                Move move = get_best_move(board);
-                play_move(&board, move);
-                return_fen_code(&board, fen);
-                SDL_RenderClear(renderer);
-                draw_board(renderer);
-                render_fen(renderer, fen);
+                if (color != color_ai) // tour du joueur humain
+                {
+                    int square = get_colored_square(&event);
+                    if (square != -1)
+                    {
+                        Move list_moves[250];
+                        SDL_RenderClear(renderer);
+                        draw_board(renderer);
+
+                        if (colored_squares->size == 0)
+                        {
+                            nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
+                            clicked_square = square;
+                        }
+                        else
+                        {
+                            if (is_in_list(colored_squares, &square))
+                            {
+                                nbmoves = getlegalmoves(clicked_square, &board, list_moves);
+                                render_play_move(&board, list_moves, square, nbmoves);
+                            }
+
+                            swap_color_squares(colored_squares, 1, renderer);
+                            list_free(colored_squares);
+                            list_init(colored_squares, sizeof(int));
+                            nbmoves = 0;
+                        }
+                        return_fen_code(&board, fen);
+                        render_fen(renderer, fen);
+                    }
+                }
+                else // tour de l'IA
+                {
+                    Move move = get_best_move(board);
+                    play_move(&board, move);
+                    return_fen_code(&board, fen);
+                    SDL_RenderClear(renderer);
+                    draw_board(renderer);
+                    render_fen(renderer, fen);
+                }
             }
         }
 
