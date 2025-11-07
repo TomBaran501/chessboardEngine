@@ -16,7 +16,6 @@
 
 #define INFINI 1000000000
 #define MAT 900000000
-#define MAX_QDEPTH 8
 #define MAX_DEPTH 50
 
 #pragma once
@@ -42,4 +41,4 @@ typedef struct
 /// @return
 Move get_best_move(Chessboard board);
 
-void initialise_ai();
+void initialise_ai(int color_ai);

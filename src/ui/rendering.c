@@ -204,20 +204,110 @@ void render_play_move(Chessboard *board, Move moves[250], int to, int nbmoves)
     play_move(board, move);
 }
 
+// Rafraîchit l’affichage du plateau après un coup
+static void ui_refresh_board(SDL_Renderer *renderer, Chessboard *board, char *fen)
+{
+    return_fen_code(board, fen);
+    SDL_RenderClear(renderer);
+    draw_board(renderer);
+    render_fen(renderer, fen);
+    SDL_RenderPresent(renderer);
+}
+
+// retourne true si un coup a été réellement joué (board modifié)
+static bool handle_player_event(SDL_Event *event, SDL_Renderer *renderer, Chessboard *board,
+                                GenericList *colored_squares, int *clicked_square, int *nbmoves, char *fen)
+{
+    // Ne traiter que les vrais clics (évite MOUSEMOTION qui pollue la queue)
+    if (event->type != SDL_MOUSEBUTTONDOWN && event->type != SDL_MOUSEBUTTONUP)
+        return false;
+
+    int square = get_colored_square(event);
+    if (square == -1)
+        return false;
+
+    printf("[DEBUG] humain: avant coup, board.white_to_play=%d\n", board->white_to_play);
+    print_chessboard(board);
+    fflush(stdout);
+
+    Move list_moves[250];
+    SDL_RenderClear(renderer);
+    draw_board(renderer);
+
+    bool played = false;
+
+    if (colored_squares->size == 0)
+    {
+        *nbmoves = set_moves(board, list_moves, square, colored_squares, renderer);
+        *clicked_square = square;
+    }
+    else
+    {
+        if (is_in_list(colored_squares, &square))
+        {
+            *nbmoves = getlegalmoves(*clicked_square, board, list_moves);
+            render_play_move(board, list_moves, square, *nbmoves);
+            played = true;
+        }
+
+        swap_color_squares(colored_squares, 1, renderer);
+        list_free(colored_squares);
+        list_init(colored_squares, sizeof(int));
+        *nbmoves = 0;
+    }
+
+    return_fen_code(board, fen);
+    render_fen(renderer, fen);
+
+    if (played)
+    {
+        printf("[DEBUG] humain: après coup, board.white_to_play=%d\n", board->white_to_play);
+        fflush(stdout);
+    }
+
+    return played;
+}
+
+static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *colored_squares, char *fen)
+{
+    if (colored_squares)
+        list_free(colored_squares);
+
+    if (fen)
+        free(fen);
+
+    for (int i = 0; i < 12; i++)
+    {
+        if (piece_textures[i])
+        {
+            SDL_DestroyTexture(piece_textures[i]);
+            piece_textures[i] = NULL;
+        }
+    }
+
+    IMG_Quit();
+
+    if (renderer)
+        SDL_DestroyRenderer(renderer);
+    if (window)
+        SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
 int ui_game_loop(char *startpos, int color_ai)
 {
+    // --- Initialisation SDL ---
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         SDL_Log("Erreur SDL_Init: %s", SDL_GetError());
         return 1;
     }
 
-    SDL_Window *window = SDL_CreateWindow("Échiquier",
-                                          SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED,
-                                          WINDOW_WIDTH,
-                                          WINDOW_HEIGHT,
-                                          SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow(
+        "Échiquier",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+        WINDOW_WIDTH, WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN);
 
     if (!window)
     {
@@ -234,154 +324,88 @@ int ui_game_loop(char *startpos, int color_ai)
         SDL_Quit();
         return 1;
     }
+
+    // --- Initialisation des ressources ---
     load_textures(renderer);
 
-    GenericList *colored_squares = malloc(sizeof(GenericList));
-    list_init(colored_squares, sizeof(int));
+    GenericList colored_squares;
+    list_init(&colored_squares, sizeof(int));
 
-    char *fen = malloc(100);
+    char *fen = calloc(250, 1); // zero initialisé
+    if (!fen)
+    {
+        SDL_Log("malloc fen failed");
+        cleanup_ui(renderer, window, &colored_squares, NULL);
+        return 1;
+    }
+
+    Chessboard *board = malloc(sizeof(Chessboard));
+    init_chessboard_from_fen(board, startpos);
+    initialise_ai(0); //Fonction à corriger
+
     int nbmoves = 0;
-
-    Chessboard board;
-    init_chessboard_from_fen(&board, startpos);
-    initialise_ai(color_ai);
-
-    int clicked_square;
+    int clicked_square = -1;
     bool running = true;
-    int color;
     SDL_Event event;
 
+    // --- Rendu initial ---
     draw_board(renderer);
-    return_fen_code(&board, fen);
+    return_fen_code(board, fen);
     render_fen(renderer, fen);
+    SDL_RenderPresent(renderer);
 
+    // --- Boucle principale ---
     while (running)
     {
+        bool move_made = false;
+
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
             {
                 running = false;
-                return 1;
+                break;
             }
 
-            color = board.white_to_play ? WHITE : BLACK;
+            int color = board->white_to_play ? WHITE : BLACK;
 
-            // === Cas IA vs IA === A CORRIGER: impossible de quitter la partie
-            if (color_ai == 2)
+            if (color_ai == -1) // joueur vs joueur
             {
-                Move move = get_best_move(board);
-                play_move(&board, move);
-                return_fen_code(&board, fen);
-                SDL_RenderClear(renderer);
-                draw_board(renderer);
-                render_fen(renderer, fen);
-                SDL_RenderPresent(renderer);
-
-                // continue;
+                if (handle_player_event(&event, renderer, board, &colored_squares, &clicked_square, &nbmoves, fen))
+                    move_made = true;
             }
-
-            // === Cas Humain vs Humain (color_ai = -1) ===
-            if (color_ai == -1)
+            else // humain vs IA ou IA vs IA
             {
-                int square = get_colored_square(&event);
-                if (square != -1)
+                if (color != color_ai)
                 {
-                    Move list_moves[250];
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer);
-
-                    if (colored_squares->size == 0)
-                    {
-                        nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
-                        clicked_square = square;
-                    }
-                    else
-                    {
-                        if (is_in_list(colored_squares, &square))
-                        {
-                            nbmoves = getlegalmoves(clicked_square, &board, list_moves);
-                            render_play_move(&board, list_moves, square, nbmoves);
-                        }
-
-                        swap_color_squares(colored_squares, 1, renderer);
-                        list_free(colored_squares);
-                        list_init(colored_squares, sizeof(int));
-                        nbmoves = 0;
-                    }
-                    return_fen_code(&board, fen);
-                    render_fen(renderer, fen);
+                    if (handle_player_event(&event, renderer, board, &colored_squares, &clicked_square, &nbmoves, fen))
+                        move_made = true;
                 }
             }
+        }
+        int color_now = board->white_to_play ? WHITE : BLACK;
 
-            // === Cas Humain vs IA === // A CORRIGER!!!
-            else
+        if (!move_made)
+        {
+            if (color_ai == 2) // IA vs IA : chaque itération, 1 coup pour la couleur à jouer
             {
-                if (color != color_ai) // tour du joueur humain
-                {
-                    int square = get_colored_square(&event);
-                    if (square != -1)
-                    {
-                        Move list_moves[250];
-                        SDL_RenderClear(renderer);
-                        draw_board(renderer);
-
-                        if (colored_squares->size == 0)
-                        {
-                            nbmoves = set_moves(&board, list_moves, square, colored_squares, renderer);
-                            clicked_square = square;
-                        }
-                        else
-                        {
-                            if (is_in_list(colored_squares, &square))
-                            {
-                                nbmoves = getlegalmoves(clicked_square, &board, list_moves);
-                                render_play_move(&board, list_moves, square, nbmoves);
-                            }
-
-                            swap_color_squares(colored_squares, 1, renderer);
-                            list_free(colored_squares);
-                            list_init(colored_squares, sizeof(int));
-                            nbmoves = 0;
-                        }
-                        return_fen_code(&board, fen);
-                        render_fen(renderer, fen);
-                    }
-                }
-                else // tour de l'IA
-                {
-                    Move move = get_best_move(board);
-                    play_move(&board, move);
-                    return_fen_code(&board, fen);
-                    SDL_RenderClear(renderer);
-                    draw_board(renderer);
-                    render_fen(renderer, fen);
-                }
+                Move move = get_best_move(*board);
+                play_move(board, move);
+                ui_refresh_board(renderer, board, fen);
+                SDL_Delay(200); // petite pause pour lisibilité
+            }
+            else if (color_now == color_ai) // Humain vs IA : si c'est au tour de l'IA
+            {
+                Move move = get_best_move(*board);
+                play_move(board, move);
+                ui_refresh_board(renderer, board, fen);
             }
         }
 
         SDL_RenderPresent(renderer);
     }
 
-    list_free(colored_squares);
-    free(colored_squares);
-    free(fen);
-
-    for (int i = 0; i < 12; i++)
-    {
-        if (piece_textures[i])
-            SDL_DestroyTexture(piece_textures[i]);
-    }
-    IMG_Quit();
-
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
+    // --- Nettoyage ---
+    cleanup_ui(renderer, window, &colored_squares, fen);
     return 0;
 }
-
-// int main()
-// {
-//     ui_game_loop(start_pos);
-// }

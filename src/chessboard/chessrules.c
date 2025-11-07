@@ -90,6 +90,7 @@ bool is_en_passant_stopping_check(uint64_t attacks, Chessboard *board, uint64_t 
 uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int color, uint64_t attacks)
 {
     uint64_t bloquerEchec = handle_checks(pos_king, board, color);
+
     uint64_t pin_mask = FULLMASK;
 
     if (piece & board->kings)

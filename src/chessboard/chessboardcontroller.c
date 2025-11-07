@@ -225,11 +225,13 @@ int getlegalmoves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
 
     uint64_t attacks = get_attacks(piecePos, chessboard);
     attacks |= handle_pawn_moves(piecePos, chessboard);
-    attacks = handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color, attacks);
 
+    attacks = handle_king_safety(create_1bit_board(piecePos), king_square, chessboard, color, attacks);
     attacks -= playerPieces & attacks;
 
     int nbmoves = count_bits(attacks);
+
+    
 
     for (int m = 0; m < nbmoves; m++)
     {
@@ -277,6 +279,7 @@ int getalllegalmoves(Chessboard *chessboard, Move all_moves[250])
     {
         int piecePos = get_lsb_index(playerPieces);
         Move piece_moves[256];
+
         int nb_coups = getlegalmoves(piecePos, chessboard, piece_moves);
 
         // Ajoute les mouvements de cette pièce à la liste globale
