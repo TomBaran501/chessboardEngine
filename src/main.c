@@ -27,7 +27,7 @@ typedef struct
     long long result;
 } ThreadArgs;
 
-int run_test(Chessboard *board, int profondeur)
+static int run_test(Chessboard *board, int profondeur)
 {
     if (profondeur <= 0)
         return 1;
@@ -49,7 +49,7 @@ int run_test(Chessboard *board, int profondeur)
     return total;
 }
 
-void *thread_worker(void *arg)
+static void *thread_worker(void *arg)
 {
     ThreadArgs *targs = (ThreadArgs *)arg;
 
@@ -58,7 +58,7 @@ void *thread_worker(void *arg)
     return NULL;
 }
 
-uint64_t run_test_mt(Chessboard *board, int profondeur)
+static uint64_t run_test_mt(Chessboard *board, int profondeur)
 {
     if (profondeur <= 0)
         return 1;
@@ -98,7 +98,7 @@ uint64_t run_test_mt(Chessboard *board, int profondeur)
     return total;
 }
 
-void perft_test(char *fen, int profondeur)
+static void perft_test(char *fen, int profondeur)
 {
     Chessboard board;
     init_chessboard_from_fen(&board, (char *)fen);
@@ -128,7 +128,7 @@ void perft_test(char *fen, int profondeur)
            (double)nbcoups / elapsed);
 }
 
-void run_game(const char *start_fen)
+static void run_game(const char *start_fen)
 {
     Chessboard board;
     char move[10];
@@ -211,14 +211,14 @@ int main(void)
         {
             if (strncmp(buffer, "go play ui", 10) == 0)
                 if (strncmp(buffer, "go play ui -wb", 14) == 0 || strncmp(buffer, "go play ui -bw", 14) == 0)
-                    ui_game_loop(current_fen, AvA);
+                    ui_main_loop(current_fen, AvA);
                 else if (strncmp(buffer, "go play ui -w", 13) == 0)
-                    ui_game_loop(current_fen, WHITE);
+                    ui_main_loop(current_fen, WHITE);
                 else if (strncmp(buffer, "go play ui -b", 13) == 0)
-                    ui_game_loop(current_fen, BLACK);
+                    ui_main_loop(current_fen, BLACK);
 
                 else
-                    ui_game_loop(current_fen, HvH);
+                    ui_main_loop(current_fen, HvH);
 
             else
                 run_game(current_fen);

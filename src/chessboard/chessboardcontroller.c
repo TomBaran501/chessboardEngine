@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-void handle_pawn_flags(Move *move, Chessboard *chessboard)
+static void handle_pawn_flags(Move *move, Chessboard *chessboard)
 {
     if (chessboard->pawns & create_1bit_board(move->from))
     {
@@ -15,7 +15,7 @@ void handle_pawn_flags(Move *move, Chessboard *chessboard)
     move->en_passant = chessboard->enpassant;
 }
 
-void handle_broken_roque_flag(Chessboard *board, Move *move)
+static void handle_broken_roque_flag(Chessboard *board, Move *move)
 {
     int pos_piece = move->from;
     uint64_t piece = create_1bit_board(pos_piece);
@@ -62,7 +62,7 @@ void handle_broken_roque_flag(Chessboard *board, Move *move)
     }
 }
 
-void update_roque_bitboard(Chessboard *board, Move *move, int color)
+static void update_roque_bitboard(Chessboard *board, Move *move, int color)
 {
     int opp_color = color == WHITE ? BLACK : WHITE;
 
@@ -79,7 +79,7 @@ void update_roque_bitboard(Chessboard *board, Move *move, int color)
         board->castling &= ~(1ULL << castling_pos[opp_color][LONGCASTLE]);
 }
 
-void add_roque_rights(Chessboard *board, int color, uint16_t roque_broken_flag)
+static void add_roque_rights(Chessboard *board, int color, uint16_t roque_broken_flag)
 {
     int opp_color = color == WHITE ? BLACK : WHITE;
 
@@ -96,7 +96,7 @@ void add_roque_rights(Chessboard *board, int color, uint16_t roque_broken_flag)
         board->castling |= (1ULL << castling_pos[opp_color][LONGCASTLE]);
 }
 
-void handle_roque_flags(Move *move, Chessboard *chessboard)
+static void handle_roque_flags(Move *move, Chessboard *chessboard)
 {
     if (chessboard->kings & create_1bit_board(move->from))
     {
@@ -108,7 +108,7 @@ void handle_roque_flags(Move *move, Chessboard *chessboard)
     }
 }
 
-void handle_piece_taken_flag(Move *move, Chessboard *chessboard)
+static void handle_piece_taken_flag(Move *move, Chessboard *chessboard)
 {
     if (get_enpassant(*move) || create_1bit_board(move->to) & chessboard->pawns)
         move->piece_taken = PAWN;
@@ -124,7 +124,7 @@ void handle_piece_taken_flag(Move *move, Chessboard *chessboard)
         move->piece_taken = NONE;
 }
 
-int handle_promotion(Move piece_moves[250], Chessboard *board, int nb_move)
+static int handle_promotion(Move piece_moves[250], Chessboard *board, int nb_move)
 {
     int nb_moves_added = 0;
     if (nb_move > 0)
@@ -155,12 +155,6 @@ int handle_promotion(Move piece_moves[250], Chessboard *board, int nb_move)
     return nb_moves_added;
 }
 
-uint64_t get_king_pos(Chessboard *board, int color)
-{
-    uint64_t allies = color == WHITE ? board->occupied_white : board->occupied_black;
-    return get_lsb_index(allies & board->kings);
-}
-
 bool is_check(Chessboard *board)
 {
     uint64_t allies = board->white_to_play ? board->occupied_white : board->occupied_black;
@@ -172,7 +166,7 @@ bool is_check(Chessboard *board)
     return false;
 }
 
-void add_flags(Move *move, Chessboard *chessboard)
+static void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
     handle_roque_flags(move, chessboard);
@@ -180,7 +174,7 @@ void add_flags(Move *move, Chessboard *chessboard)
     handle_broken_roque_flag(chessboard, move);
 }
 
-int get_captures_piece(int piecePos, Chessboard *chessboard, Move piece_moves[250])
+static int get_captures_piece(int piecePos, Chessboard *chessboard, Move piece_moves[250])
 {
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
     uint64_t ennemi_pieces = chessboard->white_to_play ? chessboard->occupied_black : chessboard->occupied_white;
@@ -294,7 +288,7 @@ int getalllegalmoves(Chessboard *chessboard, Move all_moves[250])
     return icoup;
 }
 
-void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64_t to_bitboard)
+static void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64_t to_bitboard)
 {
     if (from_bitboard & board->rooks)
     {
@@ -338,7 +332,7 @@ void update_bitboards_movement(uint64_t from_bitboard, Chessboard *board, uint64
     }
 }
 
-void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
+static void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
 {
     if (to_bitboard & board->rooks)
         board->rooks -= to_bitboard;
@@ -365,7 +359,7 @@ void update_bitboard_delete_piece(Chessboard *board, uint64_t to_bitboard)
         board->occupied_black -= to_bitboard;
 }
 
-void update_bitboard_create_piece(Chessboard *board, uint64_t to_bitboard, uint16_t piece_flag, int color)
+static void update_bitboard_create_piece(Chessboard *board, uint64_t to_bitboard, uint16_t piece_flag, int color)
 {
     if (piece_flag == ROOK)
         board->rooks |= to_bitboard;
@@ -392,7 +386,7 @@ void update_bitboard_create_piece(Chessboard *board, uint64_t to_bitboard, uint1
         board->occupied_black |= to_bitboard;
 }
 
-void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t to_bitboard)
+static void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t to_bitboard)
 {
     update_bitboard_delete_piece(board, to_bitboard);
 
@@ -411,7 +405,7 @@ void update_bitboard_promotion(int promotion_flag, Chessboard *board, uint64_t t
         board->occupied_black |= to_bitboard;
 }
 
-bool is_legal_move(Chessboard *board, Move *move)
+static bool is_legal_move(Chessboard *board, Move *move)
 {
     Move legal_moves[250];
     int nbcoups = getalllegalmoves(board, legal_moves);

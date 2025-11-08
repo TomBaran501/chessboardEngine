@@ -21,4 +21,4 @@ int evaluate_position(Chessboard *board);
 
 /// @brief Initialise les tables de position valeur utilisés pour l'évaluation des cases
 /// @return
-int initialize_tables();
+int initialize_tables(void);

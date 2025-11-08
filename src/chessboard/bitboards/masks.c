@@ -151,7 +151,7 @@ int64_t bishop_magic_numbers[BOARD_SIZE] = {
 
 static uint64_t globals_hash = 0;
 
-uint64_t compute_globals_hash()
+static uint64_t compute_globals_hash(void)
 {
     uint64_t h = 0;
     for (int i = 0; i < BOARD_SIZE; i++)
@@ -200,7 +200,7 @@ void check_globals_state()
 }
 
 /// @brief Génère le mask des coups possibles pour le roi
-void init_king_masks()
+static void init_king_masks(void)
 {
     uint64_t bitmask;
     for (int num_case = 0; num_case < BOARD_SIZE; num_case++)
@@ -227,7 +227,7 @@ void init_king_masks()
 }
 
 /// @brief Génere le masque des coups de captures possibles pour les pions
-void init_pawn_capture_masks()
+static void init_pawn_capture_masks(void)
 {
     uint64_t bitmask_white;
     uint64_t bitmask_black;
@@ -254,7 +254,7 @@ void init_pawn_capture_masks()
 }
 
 /// @brief Génere le masque des coups possibles pour les pions
-void init_pawn_moves_masks()
+static void init_pawn_moves_masks(void)
 {
     uint64_t bitmask_white;
     uint64_t bitmask_black;
@@ -274,7 +274,7 @@ void init_pawn_moves_masks()
 }
 
 /// @brief Génere le masque des coups possibles pour les cavaliers
-void init_knight_masks()
+static void init_knight_masks(void)
 {
     uint64_t bitmask;
     for (int num_case = 0; num_case < BOARD_SIZE; num_case++)
@@ -307,7 +307,7 @@ void init_knight_masks()
 }
 
 /// @brief Génere le bitboard des coups possibles pour un fou sur une case
-uint64_t mask_bishop_attacks(int square)
+static uint64_t mask_bishop_attacks(int square)
 {
     uint64_t attacks = 0ULL;
     int r, f;
@@ -328,7 +328,7 @@ uint64_t mask_bishop_attacks(int square)
 }
 
 /// @brief Génere le bitboard des coups possibles pour une tour sur une case
-uint64_t mask_rook_attacks(int square)
+static uint64_t mask_rook_attacks(int square)
 {
     uint64_t attacks = 0ULL;
     int r, f;
@@ -349,7 +349,7 @@ uint64_t mask_rook_attacks(int square)
 }
 
 /// @brief Génere le bitboard des coups possibles pour un fou sur une case en tenant compte des autres pieces
-uint64_t bishop_attacks_on_the_fly(int sq, uint64_t blockers)
+static uint64_t bishop_attacks_on_the_fly(int sq, uint64_t blockers)
 {
     uint64_t mask = 0;
     int rank = sq / 8, file = sq % 8;
@@ -382,7 +382,7 @@ uint64_t bishop_attacks_on_the_fly(int sq, uint64_t blockers)
     return mask;
 }
 /// @brief Génere le bitboard des coups possibles pour une tour sur une case en tenant compte des autres pieces
-uint64_t rook_attacks_on_the_fly(int sq, uint64_t blockers)
+static uint64_t rook_attacks_on_the_fly(int sq, uint64_t blockers)
 {
     uint64_t mask = 0;
     int rank = sq / 8, file = sq % 8;
@@ -415,7 +415,7 @@ uint64_t rook_attacks_on_the_fly(int sq, uint64_t blockers)
     return mask;
 }
 
-uint64_t set_occupancy(int index, uint64_t attack_mask)
+static uint64_t set_occupancy(int index, uint64_t attack_mask)
 {
     int nb_bits_in_mask = count_bits(attack_mask);
     uint64_t occ = 0;
@@ -432,7 +432,7 @@ uint64_t set_occupancy(int index, uint64_t attack_mask)
 }
 
 // init slider piece's attack tables
-void init_sliders_attacks(int bishop)
+static void init_sliders_attacks(int bishop)
 {
     // loop over BOARD_SIZE board squares
     for (int square = 0; square < BOARD_SIZE; square++)

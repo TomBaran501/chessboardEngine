@@ -15,7 +15,7 @@ const uint64_t castling_empty_squares[2][2] = {{(1ULL << 61) + (1ULL << 62), (1U
 const uint64_t castling_safe_squares[2][2] = {{(1ULL << 61) + (1ULL << 62) + (1ULL << 60), (1ULL << 58) + (1ULL << 59) + (1ULL << 60)},
                                               {(1ULL << 6) + (1ULL << 5) + (1ULL << 4), (1ULL << 2) + (1ULL << 3) + (1ULL << 4)}};
 
-bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
+static bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
 {
     int r1 = pos_piece / 8;
     int f1 = pos_piece % 8;
@@ -52,7 +52,7 @@ bool is_piece_pinned(int pos_piece, int pos_king, Chessboard *board, int color)
     return false;
 }
 
-bool is_en_passant_legal(int pos_pawn, Chessboard *board, int color)
+static bool is_en_passant_legal(int pos_pawn, Chessboard *board, int color)
 {
     int pos_king = get_lsb_index(color == WHITE ? board->occupied_white & board->kings : board->occupied_black & board->kings);
 
@@ -74,7 +74,7 @@ bool is_en_passant_legal(int pos_pawn, Chessboard *board, int color)
     return true;
 }
 
-bool is_en_passant_stopping_check(uint64_t attacks, Chessboard *board, uint64_t bloquer_echec, uint64_t pawn, int color)
+static bool is_en_passant_stopping_check(uint64_t attacks, Chessboard *board, uint64_t bloquer_echec, uint64_t pawn, int color)
 {
     if ((count_bits(bloquer_echec) != 1) || ((pawn & board->pawns) == 0) || ((bloquer_echec & board->pawns) == 0))
         return false;
@@ -112,7 +112,7 @@ uint64_t handle_king_safety(uint64_t piece, int pos_king, Chessboard *board, int
     return attacks;
 }
 
-uint64_t get_threats(int piecePos, Chessboard *chessboard, uint64_t pieces)
+static uint64_t get_threats(int piecePos, Chessboard *chessboard, uint64_t pieces)
 {
     uint64_t pos = create_1bit_board(piecePos);
     int color = (chessboard->occupied_white & pos) ? WHITE : BLACK;
@@ -220,7 +220,7 @@ uint64_t get_threatenned_squares(Chessboard *board, int pos_king)
     return threatenned_squares;
 }
 
-uint64_t get_blocks_check(int pos_king, uint64_t attacker, Chessboard *board)
+static uint64_t get_blocks_check(int pos_king, uint64_t attacker, Chessboard *board)
 {
     uint64_t occ = board->occupied_black | board->occupied_white;
     int pos_att = get_lsb_index(attacker);

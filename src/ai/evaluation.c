@@ -9,21 +9,7 @@ int king_table[BOARD_SIZE];
 
 int ally_color;
 
-int abs(int x)
-{
-    if (x >= 0)
-        return x;
-    return -x;
-}
-
-int max(int a, int b)
-{
-    if (a > b)
-        return a;
-    return b;
-}
-
-int count_material(Chessboard *board, int *total_value)
+static int count_material(Chessboard *board, int *total_value)
 {
     int score = 0;
     *total_value = 0;
@@ -53,7 +39,7 @@ int count_material(Chessboard *board, int *total_value)
 
 
 
-int evaluate_position_ally_pieces(Chessboard *board)
+static int evaluate_position_ally_pieces(Chessboard *board)
 {
     int score = 0;
 
@@ -146,7 +132,7 @@ int evaluate_position(Chessboard *board)
         return -1 * score;
 }
 
-int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
+static int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
 {
     FILE *f = fopen(nom_fichier, "r");
     if (!f)
@@ -178,8 +164,9 @@ int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
     return 0; // succès
 }
 
-int initialize_tables(int color_ai)
+int initialize_tables()
 {
+    int color_ai = 0;
     ally_color = color_ai;
     if (lire_piece_square_table("assets/squares_pieces_tables/pawn.txt", pawn_table) != 0)
         return -1;

@@ -3,39 +3,6 @@
 struct timespec t_start;
 int max_time_ms = 100;
 
-static const int piece_value[7] = {
-    0,
-    900,
-    320,
-    330,
-    100,
-    500,
-    INFINI,
-};
-
-int compare_moves_desc(const void *a, const void *b)
-{
-    return ((ScoredMove *)b)->score - ((ScoredMove *)a)->score;
-}
-
-int get_value_piece(int square, Chessboard *board)
-{
-    uint64_t piece_pos = create_1bit_board(square);
-    if (board->pawns & piece_pos)
-        return piece_value[PAWN];
-    if (board->queens & piece_pos)
-        return piece_value[QUEEN];
-    if (board->knights & piece_pos)
-        return piece_value[KNIGHT];
-    if (board->bishops & piece_pos)
-        return piece_value[BISHOP];
-    if (board->rooks & piece_pos)
-        return piece_value[ROOK];
-    if (board->kings & piece_pos)
-        return piece_value[KING];
-    return 0;
-}
-
 typedef struct
 {
     Move best_move;
@@ -46,7 +13,7 @@ typedef struct
  * Recherche Alpha-Beta récursive
  * Retourne une évaluation numérique pour la position courante.
  */
-int alpha_beta(Chessboard *board, int depth, int alpha, int beta, bool maximizingPlayer)
+static int alpha_beta(Chessboard *board, int depth, int alpha, int beta, bool maximizingPlayer)
 {
     if (depth == 0) // Rajouter une condition sur mat et pat
     {
@@ -104,7 +71,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, bool maximizin
 /**
  * Recherche le meilleur coup à une profondeur donnée.
  */
-SearchResult search_best_move_alpha_beta(Chessboard *board, int depth)
+static SearchResult search_best_move_alpha_beta(Chessboard *board, int depth)
 {
     Move moves[250];
     int nb_moves = getalllegalmoves(board, moves);
@@ -144,10 +111,4 @@ Move get_best_move(Chessboard board)
 {
     SearchResult best_move = search_best_move_alpha_beta(&board, 5);
     return best_move.best_move;
-}
-
-void initialise_ai(int color_ai)
-{
-    initialize_tables(color_ai);
-    init_zobrist();
 }

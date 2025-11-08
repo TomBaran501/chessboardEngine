@@ -16,8 +16,13 @@ enum
 }; // pour l'attribut ia_color 
 
 #pragma once
-void draw_board(SDL_Renderer *renderer);
 
-int ui_game_loop(char *startpos, int color_ai);
+int ui_main_loop(char *startpos, int color_ai);
 
-static void reset_colored_squares(GenericList *colored_squares);
+int handle_SDL_events(SDL_Event *event,
+                              Chessboard *board,
+                              int color_ai,
+                              SDL_Renderer *renderer,
+                              GenericList *colored_squares,
+                              int *clicked_square,
+                              int *nbmoves);

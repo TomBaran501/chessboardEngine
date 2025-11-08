@@ -92,14 +92,14 @@ void set_enpassant(Move *move, bool value)
 }
 
 /// Convertit une case en index (0 = a1, 63 = h8)
-int square_to_index(char file, char rank)
+static int square_to_index(char file, char rank)
 {
     if (file < 'a' || file > 'h' || rank < '1' || rank > '8')
         return -1;
     return (7 - rank + '1') * 8 + (file - 'a');
 }
 
-void index_to_square(int index, char square[3])
+static void index_to_square(int index, char square[3])
 {
     if (index < 0 || index > 63)
     {
