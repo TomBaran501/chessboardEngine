@@ -37,6 +37,16 @@ static void draw_board(SDL_Renderer *renderer)
     }
 }
 
+static inline GameEnvironement create_game_environment(SDL_Event *event, Chessboard *board, SDL_Renderer *renderer, GenericList *colored_squares)
+{
+    GameEnvironement env;
+    env.event = event;
+    env.board = board;
+    env.renderer = renderer;
+    env.colored_squares = colored_squares;
+    return env;
+}
+
 /// Renvoie l'index de la case cliquée (0 à 63), ou -1 si aucun clic gauche
 static int get_colored_square(SDL_Event *event)
 {
@@ -222,23 +232,23 @@ static void render_play_move(Chessboard *board, Move moves[250], int to, int nbm
     play_move(board, move);
 }
 
-static void ui_refresh_board(SDL_Renderer *renderer, Chessboard *board, GenericList *colored_squares)
+static void ui_refresh_board(GameEnvironement env)
 {
     char *fen = calloc(400, 1);
     if (!fen)
         return;
 
-    return_fen_code(board, fen);
+    return_fen_code(env.board, fen);
 
-    SDL_RenderClear(renderer);
-    draw_board(renderer);
+    SDL_RenderClear(env.renderer);
+    draw_board(env.renderer);
 
-    if (colored_squares->size != 0)
-        swap_color_squares(colored_squares, renderer);
+    if (env.colored_squares->size != 0)
+        swap_color_squares(env.colored_squares, env.renderer);
 
-    render_fen(renderer, fen);
+    render_fen(env.renderer, fen);
 
-    SDL_RenderPresent(renderer);
+    SDL_RenderPresent(env.renderer);
     free(fen);
 }
 
@@ -262,34 +272,47 @@ static void reset_colored_squares(GenericList *colored_squares)
 }
 
 // Gère les mouvements et cliks du joueur
-static void handle_player_event(SDL_Event *event, SDL_Renderer *renderer, Chessboard *board,
-                                GenericList *colored_squares, int *clicked_square, int *nbmoves)
+static void handle_player_event(GameEnvironement env, int *clicked_square)
 {
-    int square = get_colored_square(event);
-    if (invalid_event(event, square))
+    int square = get_colored_square(env.event);
+    if (invalid_event(env.event, square))
         return;
 
     Move list_moves[250];
 
-    SDL_RenderClear(renderer);
-    draw_board(renderer);
+    SDL_RenderClear(env.renderer);
+    draw_board(env.renderer);
 
-    if (colored_squares->size == 0)
+    if (env.colored_squares->size == 0)
     {
-        *nbmoves = set_moves(board, list_moves, square, colored_squares);
+        set_moves(env.board, list_moves, square, env.colored_squares);
         *clicked_square = square;
     }
     else
     {
-        if (is_in_list(colored_squares, &square))
+        if (is_in_list(env.colored_squares, &square))
         {
-            *nbmoves = getlegalmoves(*clicked_square, board, list_moves);
-            render_play_move(board, list_moves, square, *nbmoves);
+            int nbmoves = getlegalmoves(*clicked_square, env.board, list_moves);
+            render_play_move(env.board, list_moves, square, nbmoves);
         }
-        reset_colored_squares(colored_squares);
-        *nbmoves = 0;
+        reset_colored_squares(env.colored_squares);
     }
 }
+
+static GameEnvironement init_game_environment(char *startpos, SDL_Renderer *renderer)
+{
+    GenericList *colored_squares = malloc(sizeof(GenericList));
+    list_init(colored_squares, sizeof(int));
+
+    Chessboard *board = malloc(sizeof(Chessboard));
+    init_chessboard_from_fen(board, startpos);
+
+    SDL_Event *event = malloc(sizeof(SDL_Event));
+
+    GameEnvironement env = create_game_environment(event, board, renderer, colored_squares);
+    return env;
+}
+
 
 // Libère toutes les ressources SDL + internes
 static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *colored_squares, Chessboard *board)
@@ -353,72 +376,53 @@ static bool is_ai_turn(int color_ai, int color)
     return (color_ai == 2 || color == color_ai);
 }
 
-int handle_SDL_events(SDL_Event *event,
-                      Chessboard *board,
-                      int color_ai,
-                      SDL_Renderer *renderer,
-                      GenericList *colored_squares,
-                      int *clicked_square,
-                      int *nbmoves)
+static bool handle_SDL_events(int color_ai, int *clicked_square, GameEnvironement env)
 {
-    if (event->type == SDL_QUIT)
-        return 0;
+    if (env.event->type == SDL_QUIT)
+        return false;
 
-    int color = board->white_to_play ? WHITE : BLACK;
+    int color = env.board->white_to_play ? WHITE : BLACK;
 
     if (is_human_turn(color_ai, color))
     {
-        handle_player_event(event, renderer, board, colored_squares, clicked_square, nbmoves);
-        ui_refresh_board(renderer, board, colored_squares);
+        handle_player_event(env, clicked_square);
+        ui_refresh_board(env);
     }
-    printf("About to return, board->white_to_play = %d\n", board->white_to_play);
-    fflush(stdout);
-    return 1;
+    return true;
+}
+
+static void handle_ai_turn(int color_ai, GameEnvironement env)
+{
+    int color = env.board->white_to_play ? WHITE : BLACK;
+
+    if (is_ai_turn(color_ai, color))
+    {
+        Move move = get_best_move(*env.board);
+        play_move(env.board, move);
+        ui_refresh_board(env);
+        SDL_Delay(50);
+    }
+
+    SDL_Delay(10);
 }
 
 static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_Window *window)
 {
-    GenericList colored_squares;
-    list_init(&colored_squares, sizeof(int));
-
-    Chessboard *board = malloc(sizeof(Chessboard));
-    init_chessboard_from_fen(board, startpos);
-
-    int nbmoves = 0, clicked_square = -1;
+    GameEnvironement env = init_game_environment(startpos, renderer);
+    int clicked_square = -1;
     bool running = true;
-    SDL_Event event;
-
-    ui_refresh_board(renderer, board, &colored_squares);
+    ui_refresh_board(env);
 
     while (running)
     {
-        while (SDL_PollEvent(&event))
+        while (SDL_PollEvent(env.event))
         {
-            if (!handle_SDL_events(&event, board, color_ai, renderer, &colored_squares, &clicked_square, &nbmoves))
-            {
+            if (!handle_SDL_events(color_ai, &clicked_square, env))
                 running = false;
-                break;
-            }
-            printf("Has return, board->white_to_play = %d\n", board->white_to_play);
-            fflush(stdout);
         }
-
-        if (!running)
-            break;
-
-        int color = board->white_to_play ? WHITE : BLACK;
-
-        if (is_ai_turn(color_ai, color))
-        {
-            Move move = get_best_move(*board);
-            play_move(board, move);
-            ui_refresh_board(renderer, board, &colored_squares);
-            SDL_Delay(50);
-        }
-
-        SDL_Delay(10);
+        handle_ai_turn(color_ai, env);
     }
-    cleanup_ui(renderer, window, &colored_squares, board);
+    cleanup_ui(renderer, window, env.colored_squares, env.board);
 }
 
 // --- Boucle principale du jeu ---
