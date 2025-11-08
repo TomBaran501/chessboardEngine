@@ -142,7 +142,7 @@ SearchResult search_best_move_alpha_beta(Chessboard *board, int depth)
 
 Move get_best_move(Chessboard board)
 {
-    SearchResult best_move = search_best_move_alpha_beta(&board, 4);
+    SearchResult best_move = search_best_move_alpha_beta(&board, 5);
     return best_move.best_move;
 }
 

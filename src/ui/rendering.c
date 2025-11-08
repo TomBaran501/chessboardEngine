@@ -91,13 +91,13 @@ void draw_colored_square(SDL_Renderer *renderer, int square, SDL_Color color)
     SDL_RenderFillRect(renderer, &rect);
 }
 
-void swap_color_squares(GenericList *list_squares, int colored, SDL_Renderer *renderer)
+void swap_color_squares(GenericList *list_squares, SDL_Renderer *renderer)
 {
     for (int i = 0; i < list_squares->size; i++)
     {
         int square = ((int *)list_squares->data)[i];
         int beige = (square / 8 + square % 8) % 2 == 0 ? 1 : 0;
-        draw_colored_square(renderer, square, swap_square_color(beige, colored));
+        draw_colored_square(renderer, square, swap_square_color(beige, 0));
     }
 }
 
@@ -177,7 +177,7 @@ void render_fen(SDL_Renderer *renderer, const char *fen)
     }
 }
 
-int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericList *colored_squares, SDL_Renderer *renderer)
+int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericList *colored_squares)
 {
     int nbmoves = getlegalmoves(pos_piece, board, moves);
     if (nbmoves == 0)
@@ -189,7 +189,6 @@ int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericList *co
         if (!is_in_list(colored_squares, &to)) // Pour les coups de promotion
             list_add(colored_squares, &to);
     }
-    swap_color_squares(colored_squares, 0, renderer);
     return nbmoves;
 }
 
@@ -204,41 +203,61 @@ void render_play_move(Chessboard *board, Move moves[250], int to, int nbmoves)
     play_move(board, move);
 }
 
-// Rafraîchit l’affichage du plateau après un coup
-static void ui_refresh_board(SDL_Renderer *renderer, Chessboard *board, char *fen)
+static void ui_refresh_board(SDL_Renderer *renderer, Chessboard *board, GenericList *colored_squares)
 {
+    char *fen = calloc(250, 1);
+    if (!fen)
+        return;
+
     return_fen_code(board, fen);
+
     SDL_RenderClear(renderer);
     draw_board(renderer);
+
+    if (colored_squares->size != 0)
+        swap_color_squares(colored_squares, renderer);
+
     render_fen(renderer, fen);
+
     SDL_RenderPresent(renderer);
+    free(fen);
 }
 
-// retourne true si un coup a été réellement joué (board modifié)
-static bool handle_player_event(SDL_Event *event, SDL_Renderer *renderer, Chessboard *board,
-                                GenericList *colored_squares, int *clicked_square, int *nbmoves, char *fen)
+// Vérifie qu'il s'agisse bien d'un click sur une case valide
+static bool invalid_event(SDL_Event *event, int square)
 {
-    // Ne traiter que les vrais clics (évite MOUSEMOTION qui pollue la queue)
     if (event->type != SDL_MOUSEBUTTONDOWN && event->type != SDL_MOUSEBUTTONUP)
-        return false;
+        return true;
 
-    int square = get_colored_square(event);
     if (square == -1)
-        return false;
+        return true;
 
-    printf("[DEBUG] humain: avant coup, board.white_to_play=%d\n", board->white_to_play);
-    print_chessboard(board);
-    fflush(stdout);
+    return false;
+}
+
+// Réinitialiser les cases colorées
+void reset_colored_squares(GenericList *colored_squares)
+{
+    list_free(colored_squares);
+    list_init(colored_squares, sizeof(int));
+}
+
+// Gère les mouvements et cliks du joueur
+static void handle_player_event(SDL_Event *event, SDL_Renderer *renderer, Chessboard *board,
+                                GenericList *colored_squares, int *clicked_square, int *nbmoves)
+{
+    int square = get_colored_square(event);
+    if (invalid_event(event, square))
+        return;
 
     Move list_moves[250];
+
     SDL_RenderClear(renderer);
     draw_board(renderer);
-
-    bool played = false;
 
     if (colored_squares->size == 0)
     {
-        *nbmoves = set_moves(board, list_moves, square, colored_squares, renderer);
+        *nbmoves = set_moves(board, list_moves, square, colored_squares);
         *clicked_square = square;
     }
     else
@@ -247,46 +266,23 @@ static bool handle_player_event(SDL_Event *event, SDL_Renderer *renderer, Chessb
         {
             *nbmoves = getlegalmoves(*clicked_square, board, list_moves);
             render_play_move(board, list_moves, square, *nbmoves);
-            played = true;
         }
-
-        swap_color_squares(colored_squares, 1, renderer);
-        list_free(colored_squares);
-        list_init(colored_squares, sizeof(int));
+        reset_colored_squares(colored_squares);
         *nbmoves = 0;
     }
-
-    return_fen_code(board, fen);
-    render_fen(renderer, fen);
-
-    if (played)
-    {
-        printf("[DEBUG] humain: après coup, board.white_to_play=%d\n", board->white_to_play);
-        fflush(stdout);
-    }
-
-    return played;
 }
 
-static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *colored_squares, char *fen)
+// Libère toutes les ressources SDL + internes
+static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *colored_squares)
 {
     if (colored_squares)
         list_free(colored_squares);
 
-    if (fen)
-        free(fen);
-
     for (int i = 0; i < 12; i++)
-    {
         if (piece_textures[i])
-        {
-            SDL_DestroyTexture(piece_textures[i]);
-            piece_textures[i] = NULL;
-        }
-    }
+            SDL_DestroyTexture(piece_textures[i]), piece_textures[i] = NULL;
 
     IMG_Quit();
-
     if (renderer)
         SDL_DestroyRenderer(renderer);
     if (window)
@@ -294,71 +290,65 @@ static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *
     SDL_Quit();
 }
 
-int ui_game_loop(char *startpos, int color_ai)
+// Raccourci pour initialiser la fenêtre et le renderer SDL
+static bool init_sdl(SDL_Window **window, SDL_Renderer **renderer)
 {
-    // --- Initialisation SDL ---
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
     {
         SDL_Log("Erreur SDL_Init: %s", SDL_GetError());
-        return 1;
+        return false;
     }
 
-    SDL_Window *window = SDL_CreateWindow(
-        "Échiquier",
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        WINDOW_WIDTH, WINDOW_HEIGHT,
-        SDL_WINDOW_SHOWN);
-
-    if (!window)
+    *window = SDL_CreateWindow("Échiquier",
+                               SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                               WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+    if (!*window)
     {
         SDL_Log("Erreur SDL_CreateWindow: %s", SDL_GetError());
         SDL_Quit();
-        return 1;
+        return false;
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer)
+    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
+    if (!*renderer)
     {
         SDL_Log("Erreur SDL_CreateRenderer: %s", SDL_GetError());
-        SDL_DestroyWindow(window);
+        SDL_DestroyWindow(*window);
         SDL_Quit();
-        return 1;
+        return false;
     }
 
-    // --- Initialisation des ressources ---
+    return true;
+}
+
+// --- Boucle principale du jeu ---
+int ui_game_loop(char *startpos, int color_ai)
+{
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    if (!init_sdl(&window, &renderer))
+        return 1;
+
     load_textures(renderer);
 
     GenericList colored_squares;
     list_init(&colored_squares, sizeof(int));
 
-    char *fen = calloc(250, 1); // zero initialisé
-    if (!fen)
-    {
-        SDL_Log("malloc fen failed");
-        cleanup_ui(renderer, window, &colored_squares, NULL);
-        return 1;
-    }
-
     Chessboard *board = malloc(sizeof(Chessboard));
     init_chessboard_from_fen(board, startpos);
-    initialise_ai(0); //Fonction à corriger
+    initialise_ai(0); // TODO: à corriger selon la logique IA
 
-    int nbmoves = 0;
-    int clicked_square = -1;
+    int nbmoves = 0, clicked_square = -1;
     bool running = true;
     SDL_Event event;
 
-    // --- Rendu initial ---
-    draw_board(renderer);
-    return_fen_code(board, fen);
-    render_fen(renderer, fen);
-    SDL_RenderPresent(renderer);
+    // Rendu initial
+    ui_refresh_board(renderer, board, &colored_squares);
 
-    // --- Boucle principale ---
+    // --- Boucle de jeu ---
     while (running)
     {
-        bool move_made = false;
-
+        // --- Gestion des événements SDL ---
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_QUIT)
@@ -369,43 +359,30 @@ int ui_game_loop(char *startpos, int color_ai)
 
             int color = board->white_to_play ? WHITE : BLACK;
 
-            if (color_ai == -1) // joueur vs joueur
+            // --- Si c’est un mode avec humain ---
+            if (color_ai == -1 || (color != color_ai && color_ai != 2))
             {
-                if (handle_player_event(&event, renderer, board, &colored_squares, &clicked_square, &nbmoves, fen))
-                    move_made = true;
-            }
-            else // humain vs IA ou IA vs IA
-            {
-                if (color != color_ai)
-                {
-                    if (handle_player_event(&event, renderer, board, &colored_squares, &clicked_square, &nbmoves, fen))
-                        move_made = true;
-                }
+                handle_player_event(&event, renderer, board, &colored_squares, &clicked_square, &nbmoves);
+                ui_refresh_board(renderer, board, &colored_squares);
             }
         }
-        int color_now = board->white_to_play ? WHITE : BLACK;
 
-        if (!move_made)
+        if (!running)
+            break;
+
+        // --- Gestion IA (en dehors du bloc d’événements pour IA vs IA) ---
+        int color = board->white_to_play ? WHITE : BLACK;
+
+        if (color_ai == 2 || color == color_ai)
         {
-            if (color_ai == 2) // IA vs IA : chaque itération, 1 coup pour la couleur à jouer
-            {
-                Move move = get_best_move(*board);
-                play_move(board, move);
-                ui_refresh_board(renderer, board, fen);
-                SDL_Delay(200); // petite pause pour lisibilité
-            }
-            else if (color_now == color_ai) // Humain vs IA : si c'est au tour de l'IA
-            {
-                Move move = get_best_move(*board);
-                play_move(board, move);
-                ui_refresh_board(renderer, board, fen);
-            }
+            Move move = get_best_move(*board);
+            play_move(board, move);
+            ui_refresh_board(renderer, board, &colored_squares);
+            SDL_Delay(50); // pause pour voir les coups IA
         }
 
-        SDL_RenderPresent(renderer);
+        SDL_Delay(10);
     }
-
-    // --- Nettoyage ---
-    cleanup_ui(renderer, window, &colored_squares, fen);
+    cleanup_ui(renderer, window, &colored_squares);
     return 0;
 }

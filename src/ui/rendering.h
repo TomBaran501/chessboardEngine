@@ -19,3 +19,5 @@ enum
 void draw_board(SDL_Renderer *renderer);
 
 int ui_game_loop(char *startpos, int color_ai);
+
+static void reset_colored_squares(GenericList *colored_squares);
