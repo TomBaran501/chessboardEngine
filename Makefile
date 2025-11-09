@@ -1,6 +1,6 @@
 # === VARIABLES ===
 CC := gcc
-CFLAGS := -Wall -Wextra -std=c11
+CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L
 
 SRC_DIR := src
 INCLUDE_DIR := lib
@@ -14,7 +14,7 @@ LDLIBS := `sdl2-config --libs` -lSDL2_image
 
 # === SOURCES ===
 SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
-SRC_FILES := $(filter-out $(SRC_DIR)/main_ai.c, $(SRC_FILES))
+SRC_FILES := $(filter-out $(SRC_DIR)/api_bot.c, $(SRC_FILES))
 OBJ_FILES := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_FILES))
 
 BOT_SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
@@ -38,10 +38,13 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "🛠️  Compiling $<"
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
+BOT_EXEC := bots/bot_v0
+BOT_DIR := bots
+
 $(BOT_EXEC): $(BOT_OBJ_FILES)
-	@mkdir -p $(BUILD_DIR)
-	@echo "🔗 Linkage (bot)..."
-	$(CC) $(BOT_OBJ_FILES) -o $@ $(LDLIBS)
+	@mkdir -p $(BOT_DIR)
+	@echo "🔗 Linking bot executable..."
+	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $@ $(LDLIBS)
 
 
 # === EXÉCUTIONS ===
@@ -68,14 +71,17 @@ re: clean all
 TEST_DIR := tests
 TEST_SRC := $(shell find $(TEST_DIR) -name "*.c")
 
-# On prend toutes les sources dans src/chessboard (et sous-dossiers) sauf main.c
 SRC_CHESSBOARD := $(shell find $(SRC_DIR)/chessboard -name "*.c")
-OBJ_CHESSBOARD := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC_CHESSBOARD))
+SRC_API := $(shell find $(SRC_DIR)/api -name "*.c")
 
-test: $(OBJ_CHESSBOARD) $(TEST_SRC)
+TEST_SRC_FILES := $(SRC_CHESSBOARD) $(SRC_API)
+TEST_OBJ_FILES := $(TEST_SRC_FILES:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+
+test: $(TEST_OBJ_FILES)
 	@mkdir -p $(BUILD_DIR)
 	@echo "🧪 Compilation des tests..."
-	$(CC) $(CFLAGS) $(INCLUDES) $^ -o $(TEST_EXEC) -lcriterion
+	$(CC) $(CFLAGS) $(INCLUDES) $(TEST_OBJ_FILES) $(TEST_SRC) -o $(TEST_EXEC) -lcriterion
 	@echo "🚀 Lancement des tests..."
 	ulimit -s unlimited && ./$(TEST_EXEC) --jobs 1
+
 

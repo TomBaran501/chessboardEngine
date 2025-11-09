@@ -4,6 +4,7 @@
 #include "tools/dynamic_list.h"
 #include "ai/ai.h"
 #include "ai/evaluation.h"
+#include "api_connector.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
