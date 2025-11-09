@@ -75,8 +75,6 @@ go perft [depth]
 
 ## Project Structure
 
-```
-.
 ├── src/                  # Source code files
 ├── lib/                  # Header files
 ├── documentation/        # Project documentation
