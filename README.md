@@ -75,6 +75,7 @@ go perft [depth]
 
 ## Project Structure
 
+```
 ├── src/                  # Source code files
 ├── lib/                  # Header files
 ├── documentation/        # Project documentation
@@ -82,7 +83,7 @@ go perft [depth]
 ├── bots/                 # Test suites
 ├── Makefile              # Build configuration
 └── README.md             # This file
-
+```
 
 ## Performance Benchmarks
 
