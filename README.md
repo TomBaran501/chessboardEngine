@@ -1,130 +1,115 @@
-# ♟️ Chessboard Engine
+# Chess Engine
 
-A chess engine written in **C**, using **bitboards** and tested with **Criterion**.  
-It can load FEN positions, generate all legal moves, and run **perft tests** to validate move generation.  
-
----
-
-## 📂 Project Structure
-
-    ├── assets/           # Resources (images, ...)
-    ├── lib/
-    │   └── chessboard/   # Engine headers
-    ├── src/
-    │   └── chessboard/   # Engine source code
-    ├── tests/            # Unit tests (Criterion)
-    ├── Makefile          # Build system
-    └── README.md         # This file
-
----
-
-## ⚡ Installation & Build
-
-### Requirements
-- **gcc** or **clang**
-- **make**
-- **Criterion** for tests  
-```sh
-  sudo apt-get install libcriterion-dev
-```
-
-
-### Build with GUI
-```sh
-  make ui
-```
-  
-
-### Run the engine
-```sh
-  make run
-```
-
-### Run tests
-```sh
-  make test
-```
+A high-performance chess engine written in C, featuring an advanced move generation system, graphical interface, and bot API for automated gameplay.
 
 ## Features
 
-- Load positions via FEN ✅
+### 🚀 High-Performance Move Generation
+- **Bitboard representation** for efficient board state management
+- **Magic bitboards** for O(1) sliding piece move generation
+- **Multi-threaded perft testing** achieving up to 80 million moves per second
+- Compact move structures optimized for cache efficiency
 
-- Generate all legal moves ✅
+### 🎮 Graphical Interface
+- Interactive chess board with visual piece movement
+- Human vs Bot gameplay
+- Bot vs Bot gameplay
 
-- Play a game through a GUI ✅
+### 🤖 Bot API
+- bot communication
+- Support for bot vs bot matches
+- Standardized move format and game state representation
+- Easy integration for custom chess engines
 
-- Validate move generation using perft tests ✅
+### 🧠 Chess Engine
+- Legal move generation with full rule support
+- Evaluation function for position assessment
+- Search algorithms for move selection
+- Support for standard chess notation
 
-- Position evaluation (WIP)
+## Getting Started
 
-- Search engine (minimax / alpha-beta, WIP)
+### Prerequisites
+- GCC or compatible C compiler
+- Make build system
+- POSIX threads support (for multi-threading)
+- SDL2 for ui
 
-### 🧪 CI/CD
+### Building the Project
 
-This project is automatically tested with GitHub Actions.
-Unit tests are executed on every push and pull request.
+```bash
+# Clone the repository
+git clone [https://github.com/TomBaran501/chessboardEngine.git]
+cd [chessboardEngine]
 
-Move generation is validated using perft tests.
-👉 [Perft results reference](https://www.chessprogramming.org/Perft_Results)
+# Build and run the project
+make run
+```
 
-## 🚀 Optimizations
+## Documentation
 
-To improve performance and speed up perft tests, several optimizations have been implemented:
+Comprehensive documentation is available in the `documentation/` folder:
 
-- Bitboards: 64-bit masks to represent the board, enabling fast operations with bitwise logic.
+- **[Move Generation](documentations/legal_move_generation.md)** - Technical details on the legal move generation system, optimization techniques, and performance benchmarks
+- **[Bot API](documentations/bot_api.md)** - API specification for developing and connecting chess bots
+- **[Main Commands](documentations/commands_main.md)** - Command-line interface reference and usage guide
 
-- Precomputed tables: cached attacks for "normal" pieces (knight, pawn, king) and magic bitboards for sliding pieces (rook, bishop, queen).
+## Usage
 
-- Multi-threaded perft: parallelized tree exploration to take advantage of multi-core CPUs.
+### Playing Against the Bot
 
-- Reduced dynamic allocations: use of preallocated arrays (Move move_list[MAX_MOVES]) to avoid unnecessary memory overhead.
+Launch the graphical interface and play against the built-in chess engine. Use the documented commands to control the game flow.
 
-### ⚡ Performance:
+### Running Bot vs Bot Matches
 
-Single-thread speed: 8–10 million moves/s
+Start the API server and connect your bots to compete against each other. See the [Bot API documentation](documentation/bot_api.md) for integration details.
 
-Multi-thread speed: 40–90 million moves/s
-(⚠️ Multi-threading is less efficient when the root position has fewer legal moves)
+### Performance Testing
 
-## Future Work
+Run perft tests to verify move generation correctness and measure performance:
 
-Planned improvements and features to make the engine stronger and more complete:
+```bash
+./chess 
+go perft [depth]
+```
 
-#### Search improvements
+## Project Structure
 
-- Implement iterative deepening
-
-- Add alpha-beta pruning
-
-- Introduce move ordering (killer moves, history heuristic)
-
-#### Position evaluation
-
-- Material and piece-square tables
-
-- King safety and pawn structure evaluation
-
-- Mobility and control of the center
-
-#### Transposition tables
-
-- Store already-evaluated positions using Zobrist hashing
-
-- Reduce redundant calculations in search
-
-#### UCI Protocol support
-
-- Allow communication with GUIs such as Arena, Cute Chess, or lichess-bot
+```
+.
+├── src/                  # Source code files
+├── lib/                  # Header files
+├── documentation/        # Project documentation
+├── tests/                # Test suites
+├── bots/                 # Test suites
+├── Makefile              # Build configuration
+└── README.md             # This file
 
 
----
+## Performance Benchmarks
 
-## 📸 Screenshots
+- **Move generation**: Up to 80 million moves/second (perft)
+- **Evaluation speed**: Between 5 millions and 40 millions positions evaluated per second
 
-### 🧵 Multi-threaded Perft Test
-Exemple d’un perft test lancé en multi-threading :  
-![Perft Test](assets/screenshots/result_perft_test_multi_threading.png)
+## Technical Highlights
 
-### 🎨 Graphical User Interface
-Interface graphique permettant de jouer une partie :  
-![Chessboard UI](assets/screenshots/ihm_chess_engine.png)
+- Efficient bitboard-based board representation
+- Magic bitboard move generation for sliding pieces
+- Multi-threaded perft calculations
+- Cache-optimized data structures
+- Minimal memory footprint per move
+
+
+## License
+
+MIT License
+
+Copyright (c) 2025 Baran Tom
+
+## Acknowledgments
+
+- Magic bitboard implementation inspired by [Chess Programming Wiki](https://www.chessprogramming.org/)
+- Perft positions from standard test suites
+
+
+**Note**: This is an educational/hobby project demonstrating advanced techniques in chess programming and game engine development.
