@@ -22,6 +22,8 @@ typedef struct
     Chessboard *board;
     SDL_Renderer *renderer;
     GenericList *colored_squares;
+    BotConnector *bot1;
+    BotConnector *bot2;
 } GameEnvironement;
 
 #pragma once

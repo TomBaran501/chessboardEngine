@@ -12,6 +12,9 @@ SDL_Color DARKER_GREEN = {80, 110, 55, 255}; // foncé
 
 SDL_Texture *piece_textures[12];
 
+char *bot1_path = "./bots/bot_v0";
+char *bot2_path = "./bots/bot_v0";
+
 char *endgame = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
 char *start_pos = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
 
@@ -37,13 +40,16 @@ static void draw_board(SDL_Renderer *renderer)
     }
 }
 
-static inline GameEnvironement create_game_environment(SDL_Event *event, Chessboard *board, SDL_Renderer *renderer, GenericList *colored_squares)
+static inline GameEnvironement create_game_environment(SDL_Event *event, Chessboard *board, SDL_Renderer *renderer, GenericList *colored_squares, BotConnector *bot1, BotConnector *bot2)
 {
     GameEnvironement env;
     env.event = event;
     env.board = board;
     env.renderer = renderer;
     env.colored_squares = colored_squares;
+    env.bot1 = bot1;
+    env.bot2 = bot2;
+
     return env;
 }
 
@@ -221,7 +227,7 @@ static int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericL
     return nbmoves;
 }
 
-static void render_play_move(Chessboard *board, Move moves[250], int to, int nbmoves)
+static void render_play_move(GameEnvironement env, Move moves[250], int to, int nbmoves)
 {
     Move move;
     for (int i = 0; i < nbmoves; i++)
@@ -229,7 +235,7 @@ static void render_play_move(Chessboard *board, Move moves[250], int to, int nbm
         if (moves[i].to == to)
             move = moves[i];
     }
-    play_move(board, move);
+    play_move_all(env, move);
 }
 
 static void ui_refresh_board(GameEnvironement env)
@@ -293,7 +299,7 @@ static void handle_player_event(GameEnvironement env, int *clicked_square)
         if (is_in_list(env.colored_squares, &square))
         {
             int nbmoves = getlegalmoves(*clicked_square, env.board, list_moves);
-            render_play_move(env.board, list_moves, square, nbmoves);
+            render_play_move(env, list_moves, square, nbmoves);
         }
         reset_colored_squares(env.colored_squares);
     }
@@ -309,19 +315,27 @@ static GameEnvironement init_game_environment(char *startpos, SDL_Renderer *rend
 
     SDL_Event *event = malloc(sizeof(SDL_Event));
 
-    GameEnvironement env = create_game_environment(event, board, renderer, colored_squares);
+    BotConnector *bot1 = malloc(sizeof(BotConnector));
+    BotConnector *bot2 = malloc(sizeof(BotConnector));
+
+    GameEnvironement env = create_game_environment(event, board, renderer, colored_squares, bot1, bot2);
     return env;
 }
 
-
 // Libère toutes les ressources SDL + internes
-static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GenericList *colored_squares, Chessboard *board)
+static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GameEnvironement env)
 {
-    if (colored_squares)
-        list_free(colored_squares);
+    if (env.colored_squares)
+        list_free(env.colored_squares);
 
-    if (board)
-        free(board);
+    if (env.board)
+        free(env.board);
+
+    if (env.bot1)
+        free(env.bot1);
+
+    if (env.bot2)
+        free(env.bot2);
 
     for (int i = 0; i < 12; i++)
         if (piece_textures[i])
@@ -391,14 +405,43 @@ static bool handle_SDL_events(int color_ai, int *clicked_square, GameEnvironemen
     return true;
 }
 
+play_move_all(GameEnvironement env, Move move)
+{
+    play_move(env.board, move);
+
+    char movestring[MOVE_SIZE];
+    move_to_string(&move, movestring);
+
+    if (is_bot_connected(env.bot1))
+        bot_play_move(env.bot1, movestring);
+
+    if (is_bot_connected(env.bot2))
+        bot_play_move(env.bot2, movestring);
+}
+
+static int get_and_play_best_move(int color, GameEnvironement env)
+{
+    char best_move[MOVE_SIZE];
+    BotConnector *bot = color == WHITE ? env.bot1 : env.bot2;
+
+    if (bot_get_best_move(bot, best_move) != 0)
+        return 1;
+    
+    Move move = get_move(best_move);
+    play_move_all(env, move);
+
+    return 0;
+}
+
 static void handle_ai_turn(int color_ai, GameEnvironement env)
 {
     int color = env.board->white_to_play ? WHITE : BLACK;
 
     if (is_ai_turn(color_ai, color))
     {
-        Move move = get_best_move(*env.board);
-        play_move(env.board, move);
+        if (get_and_play_best_move(color, env) != 0)
+            printf("Erreur de communication avec le bot\n");
+
         ui_refresh_board(env);
         SDL_Delay(50);
     }
@@ -406,12 +449,32 @@ static void handle_ai_turn(int color_ai, GameEnvironement env)
     SDL_Delay(10);
 }
 
+static void try_connect_bot(BotConnector *bot1, char *bot_path)
+{
+    if (bot_connect(bot1, bot_path) != 0)
+        printf("erreur de connection au bot...\n");
+}
+
+static void init_bots(BotConnector *bot1, BotConnector *bot2, int color_ai)
+{
+    if (color_ai == -1)
+        return;
+
+    if (color_ai == WHITE || color_ai == 2)
+        try_connect_bot(bot1, bot1_path);
+
+    if (color_ai == BLACK || color_ai == 2)
+        try_connect_bot(bot2, bot2_path);
+}
+
 static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_Window *window)
 {
     GameEnvironement env = init_game_environment(startpos, renderer);
     int clicked_square = -1;
     bool running = true;
+
     ui_refresh_board(env);
+    init_bots(env.bot1, env.bot2, color_ai);
 
     while (running)
     {
@@ -422,7 +485,7 @@ static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_
         }
         handle_ai_turn(color_ai, env);
     }
-    cleanup_ui(renderer, window, env.colored_squares, env.board);
+    cleanup_ui(renderer, window, env);
 }
 
 // --- Boucle principale du jeu ---

@@ -73,5 +73,6 @@ bool get_enpassant(Move move);
 void set_enpassant(Move *move, bool value);
 
 Move get_move(char move[10]);
+void move_to_string(Move *move, char *move_string);
 
 #endif
