@@ -50,7 +50,7 @@ make run
 
 Comprehensive documentation is available in the `documentation/` folder:
 
-- **[Move Generation](documentations/legal_move_generation.md)** - Technical details on the legal move generation system, optimization techniques, and performance benchmarks
+- **[Move Generation](documentations/legal_moves_generation.md)** - Technical details on the legal move generation system, optimization techniques, and performance benchmarks
 - **[Bot API](documentations/bot_api.md)** - API specification for developing and connecting chess bots
 - **[Main Commands](documentations/commands_main.md)** - Command-line interface reference and usage guide
 
