@@ -24,6 +24,9 @@ void init_chessboard(Chessboard *board)
     board->occupied_black = RANK_1 | RANK_2;
     board->occupied_white = RANK_7 | RANK_8;
 
+    board->enpassant = 0;
+    board->castling = create_1bit_board(casttling_squares[0]) + create_1bit_board(casttling_squares[1]) + create_1bit_board(casttling_squares[2]) + create_1bit_board(casttling_squares[3]);
+
     board->white_to_play = true;
 }
 

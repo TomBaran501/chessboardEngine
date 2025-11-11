@@ -227,6 +227,20 @@ static int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericL
     return nbmoves;
 }
 
+void play_move_all(GameEnvironement env, Move move)
+{
+    play_move(env.board, move);
+
+    char movestring[MOVE_SIZE];
+    move_to_string(&move, movestring);
+
+    if (is_bot_connected(env.bot1))
+        bot_play_move(env.bot1, movestring);
+
+    if (is_bot_connected(env.bot2))
+        bot_play_move(env.bot2, movestring);
+}
+
 static void render_play_move(GameEnvironement env, Move moves[250], int to, int nbmoves)
 {
     Move move;
@@ -349,7 +363,6 @@ static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GameEnvironem
     SDL_Quit();
 }
 
-// Raccourci pour initialiser la fenêtre et le renderer SDL
 static bool init_sdl(SDL_Window **window, SDL_Renderer **renderer)
 {
     if (SDL_Init(SDL_INIT_VIDEO) != 0)
@@ -403,20 +416,6 @@ static bool handle_SDL_events(int color_ai, int *clicked_square, GameEnvironemen
         ui_refresh_board(env);
     }
     return true;
-}
-
-play_move_all(GameEnvironement env, Move move)
-{
-    play_move(env.board, move);
-
-    char movestring[MOVE_SIZE];
-    move_to_string(&move, movestring);
-
-    if (is_bot_connected(env.bot1))
-        bot_play_move(env.bot1, movestring);
-
-    if (is_bot_connected(env.bot2))
-        bot_play_move(env.bot2, movestring);
 }
 
 static int get_and_play_best_move(int color, GameEnvironement env)
