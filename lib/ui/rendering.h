@@ -24,6 +24,7 @@ typedef struct
     GenericList *colored_squares;
     BotConnector *bot1;
     BotConnector *bot2;
+    int *GameState;
 } GameEnvironement;
 
 #pragma once

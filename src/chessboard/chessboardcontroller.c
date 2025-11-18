@@ -207,7 +207,7 @@ static int get_captures_piece(int piecePos, Chessboard *chessboard, Move piece_m
     return nbmoves;
 }
 
-int getlegalmoves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
+int get_legal_moves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
 {
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
 
@@ -264,7 +264,7 @@ int get_all_captures(Chessboard *chessboard, Move all_moves[250])
     return icoup;
 }
 
-int getalllegalmoves(Chessboard *chessboard, Move all_moves[250])
+int get_all_legal_moves(Chessboard *chessboard, Move all_moves[250])
 {
     uint64_t playerPieces = chessboard->white_to_play ? chessboard->occupied_white : chessboard->occupied_black;
     int icoup = 0;
@@ -274,7 +274,7 @@ int getalllegalmoves(Chessboard *chessboard, Move all_moves[250])
         int piecePos = get_lsb_index(playerPieces);
         Move piece_moves[256];
 
-        int nb_coups = getlegalmoves(piecePos, chessboard, piece_moves);
+        int nb_coups = get_legal_moves(piecePos, chessboard, piece_moves);
 
         // Ajoute les mouvements de cette pièce à la liste globale
         for (int i = 0; i < nb_coups; i++)
@@ -408,7 +408,7 @@ static void update_bitboard_promotion(int promotion_flag, Chessboard *board, uin
 static bool is_legal_move(Chessboard *board, Move *move)
 {
     Move legal_moves[250];
-    int nbcoups = getalllegalmoves(board, legal_moves);
+    int nbcoups = get_all_legal_moves(board, legal_moves);
 
     for (int i = 0; i < nbcoups; i++)
     {
@@ -468,6 +468,7 @@ inline void play_move(Chessboard *board, Move move)
     }
 
     board->white_to_play = !board->white_to_play;
+    add_position(board->hashtable, compute_hash(board));
 }
 
 inline void unplay_move(Chessboard *board, Move move)
@@ -505,4 +506,22 @@ inline void unplay_move(Chessboard *board, Move move)
     }
     board->enpassant = move.en_passant;
     board->white_to_play = !board->white_to_play;
+    pop_position(board->hashtable);
+}
+
+int play_move_check_gameover(Chessboard *board, Move move)
+{
+    play_move(board, move);
+
+    if (is_threefold_repetition(board->hashtable, compute_hash(board)))
+        return DRAW;
+    
+    Move moves[250];
+    if (get_all_legal_moves(board, moves) != 0)
+        return PLAYING;
+    
+    if (is_check(board))
+        return WIN;
+    
+    return DRAW;
 }

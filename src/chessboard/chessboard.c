@@ -1,4 +1,5 @@
 #include "chessboard.h"
+#include "hashtables/hash_table.h"
 
 #include "stdlib.h"
 
@@ -28,6 +29,12 @@ void init_chessboard(Chessboard *board)
     board->castling = create_1bit_board(casttling_squares[0]) + create_1bit_board(casttling_squares[1]) + create_1bit_board(casttling_squares[2]) + create_1bit_board(casttling_squares[3]);
 
     board->white_to_play = true;
+
+    RepetitionTable *t = malloc(sizeof(RepetitionTable));
+    init_repetition_table(t);
+    board->hashtable = t;
+
+    init_zobrist();
 }
 
 void print_chessboard(const Chessboard *board)
@@ -310,7 +317,12 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
         ptr += 2;
     }
 
+    RepetitionTable *t = malloc(sizeof(RepetitionTable));
+    init_repetition_table(t);
+    board->hashtable = t;
+
     init_bitboards();
+    init_zobrist();
 }
 
 void copy_chessboard(const Chessboard *src, Chessboard *dst)

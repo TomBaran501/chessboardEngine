@@ -4,30 +4,34 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
-#include "../chessboard.h"
+#include <stdbool.h>
 
 typedef uint64_t ZobristKey;
 
 #define HASH_TABLE_SIZE 16384
 
+typedef struct Chessboard Chessboard;
+
 // Structure pour une entrée de la table de répétition
-typedef struct {
+typedef struct
+{
     ZobristKey key;
     int count;
 } HashEntry;
 
 // Table de répétition
-typedef struct {
+typedef struct RepetitionTable
+{
     HashEntry entries[HASH_TABLE_SIZE];
     ZobristKey history[512];
     int history_count;
 } RepetitionTable;
 
 // Tables Zobrist globales
-extern ZobristKey zobrist_pieces[12][64];  // 12 types de pièces × 64 cases
-extern ZobristKey zobrist_castling[16];     // 16 combinaisons de droits de roque
-extern ZobristKey zobrist_en_passant[64];   // En passant par case
-extern ZobristKey zobrist_side_to_move;     // Trait aux blancs/noirs
+extern ZobristKey zobrist_pieces[12][64]; // 12 types de pièces × 64 cases
+extern ZobristKey zobrist_castling[16];   // 16 combinaisons de droits de roque
+extern ZobristKey zobrist_en_passant[64]; // En passant par case
+extern ZobristKey zobrist_side_to_move;   // Trait aux blancs/noirs
 
 // Fonctions d'initialisation
 void init_zobrist(void);

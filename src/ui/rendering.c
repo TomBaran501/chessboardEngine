@@ -40,7 +40,7 @@ static void draw_board(SDL_Renderer *renderer)
     }
 }
 
-static inline GameEnvironement create_game_environment(SDL_Event *event, Chessboard *board, SDL_Renderer *renderer, GenericList *colored_squares, BotConnector *bot1, BotConnector *bot2)
+static inline GameEnvironement create_game_environment(SDL_Event *event, Chessboard *board, SDL_Renderer *renderer, GenericList *colored_squares, BotConnector *bot1, BotConnector *bot2, int *GameState)
 {
     GameEnvironement env;
     env.event = event;
@@ -49,6 +49,7 @@ static inline GameEnvironement create_game_environment(SDL_Event *event, Chessbo
     env.colored_squares = colored_squares;
     env.bot1 = bot1;
     env.bot2 = bot2;
+    env.GameState = GameState;
 
     return env;
 }
@@ -214,7 +215,7 @@ static void render_fen(SDL_Renderer *renderer, const char *fen)
 
 static int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericList *colored_squares)
 {
-    int nbmoves = getlegalmoves(pos_piece, board, moves);
+    int nbmoves = get_legal_moves(pos_piece, board, moves);
     if (nbmoves == 0)
         return 0;
 
@@ -229,7 +230,7 @@ static int set_moves(Chessboard *board, Move moves[250], int pos_piece, GenericL
 
 void play_move_all(GameEnvironement env, Move move)
 {
-    play_move(env.board, move);
+    *env.GameState = play_move_check_gameover(env.board, move);
 
     char movestring[MOVE_SIZE];
     move_to_string(&move, movestring);
@@ -312,7 +313,7 @@ static void handle_player_event(GameEnvironement env, int *clicked_square)
     {
         if (is_in_list(env.colored_squares, &square))
         {
-            int nbmoves = getlegalmoves(*clicked_square, env.board, list_moves);
+            int nbmoves = get_legal_moves(*clicked_square, env.board, list_moves);
             render_play_move(env, list_moves, square, nbmoves);
         }
         reset_colored_squares(env.colored_squares);
@@ -331,8 +332,10 @@ static GameEnvironement init_game_environment(char *startpos, SDL_Renderer *rend
 
     BotConnector *bot1 = malloc(sizeof(BotConnector));
     BotConnector *bot2 = malloc(sizeof(BotConnector));
+    int *GameState = malloc(sizeof(int));
+    *GameState = 0;
 
-    GameEnvironement env = create_game_environment(event, board, renderer, colored_squares, bot1, bot2);
+    GameEnvironement env = create_game_environment(event, board, renderer, colored_squares, bot1, bot2, GameState);
     return env;
 }
 
@@ -350,6 +353,9 @@ static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GameEnvironem
 
     if (env.bot2)
         free(env.bot2);
+
+    if (env.GameState)
+        free(env.GameState);
 
     for (int i = 0; i < 12; i++)
         if (piece_textures[i])
@@ -425,7 +431,7 @@ static int get_and_play_best_move(int color, GameEnvironement env)
 
     if (bot_get_best_move(bot, best_move) != 0)
         return 1;
-    
+
     Move move = get_move(best_move);
     play_move_all(env, move);
 
@@ -477,6 +483,9 @@ static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_
 
     while (running)
     {
+        if (*env.GameState != PLAYING)
+            running = false;
+
         while (SDL_PollEvent(env.event))
         {
             if (!handle_SDL_events(color_ai, &clicked_square, env))

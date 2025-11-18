@@ -21,7 +21,7 @@ static int alpha_beta(Chessboard *board, int depth, int alpha, int beta, bool ma
     }
 
     Move moves[250];
-    int nb_moves = getalllegalmoves(board, moves);
+    int nb_moves = get_all_legal_moves(board, moves);
 
     if (nb_moves == 0)
         return evaluate_position(board);
@@ -74,7 +74,7 @@ static int alpha_beta(Chessboard *board, int depth, int alpha, int beta, bool ma
 static SearchResult search_best_move_alpha_beta(Chessboard *board, int depth)
 {
     Move moves[250];
-    int nb_moves = getalllegalmoves(board, moves);
+    int nb_moves = get_all_legal_moves(board, moves);
 
     SearchResult result;
     result.best_move = moves[0];

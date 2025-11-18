@@ -1,4 +1,5 @@
 #include "hash_table.h"
+#include "../chessboard.h"
 
 ZobristKey zobrist_pieces[12][64];
 ZobristKey zobrist_castling[16];

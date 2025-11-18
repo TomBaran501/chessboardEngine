@@ -10,9 +10,10 @@
 #include "bitboard.h"
 #include "masks.h"
 
+typedef struct RepetitionTable RepetitionTable;
 
 // Définition de la structure Chessboard
-typedef struct
+typedef struct Chessboard
 {
     uint64_t pawns;
     uint64_t knights;
@@ -29,7 +30,16 @@ typedef struct
 
     int white_to_play;
 
+    RepetitionTable *hashtable;
+
 } Chessboard;
+
+enum
+{
+    PLAYING = 0,
+    DRAW = 1,
+    WIN = 2,
+}; // Game state
 
 // Initialisation d'un échiquier avec la position de départ
 void init_chessboard(Chessboard *board);
