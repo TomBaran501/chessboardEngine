@@ -16,7 +16,7 @@ int run_test(Chessboard *board, int profondeur)
         return 1;
 
     Move liste_coups[250];
-    int nbmoves = getalllegalmoves(board, liste_coups);
+    int nbmoves = get_all_legal_moves(board, liste_coups);
 
     int total = 0;
 
