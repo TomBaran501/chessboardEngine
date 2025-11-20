@@ -16,7 +16,7 @@ char *bot1_path = "./bots/bot_v0";
 char *bot2_path = "./bots/bot_v0";
 
 char *endgame = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
-char *start_pos = "8/3K4/4P3/8/8/8/6k1/7q w - - 0 1";
+char *start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 static void draw_board(SDL_Renderer *renderer)
 {
@@ -339,8 +339,7 @@ static GameEnvironement init_game_environment(char *startpos, SDL_Renderer *rend
     return env;
 }
 
-// Libère toutes les ressources SDL + internes
-static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GameEnvironement env)
+static void cleanup_env(GameEnvironement env)
 {
     if (env.colored_squares)
         list_free(env.colored_squares);
@@ -356,7 +355,11 @@ static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window, GameEnvironem
 
     if (env.GameState)
         free(env.GameState);
+}
 
+// Libère toutes les ressources SDL + internes
+static void cleanup_ui(SDL_Renderer *renderer, SDL_Window *window)
+{
     for (int i = 0; i < 12; i++)
         if (piece_textures[i])
             SDL_DestroyTexture(piece_textures[i]), piece_textures[i] = NULL;
@@ -486,7 +489,7 @@ static void print_winner(GameEnvironement env)
 {
     if (*env.GameState == DRAW)
         printf("Tie\n\n\n");
-    if (env.board->white_to_play)
+    else if (env.board->white_to_play)
         printf("Black wins\n\n\n");
     else
         printf("White wins\n\n\n");
@@ -515,7 +518,25 @@ static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_
             running = false;
     }
     print_winner(env);
-    cleanup_ui(renderer, window, env);
+    cleanup_env(env);
+    cleanup_ui(renderer, window);
+}
+
+static void bot_game_loop(GameEnvironement env)
+{
+    bool running = true;
+
+    ui_refresh_board(env);
+    init_bots(env, AvA);
+
+    while (running)
+    {
+        handle_ai_turn(AvA, env);
+
+        if (*env.GameState != PLAYING)
+            running = false;
+    }
+    print_winner(env);
 }
 
 // --- Boucle principale du jeu ---
@@ -529,5 +550,26 @@ int ui_main_loop(char *startpos, int color_ai)
     load_textures(renderer);
 
     game_loop(startpos, renderer, color_ai, window);
+    return 0;
+}
+
+// --- Fonction pour les matchs entre bots ---
+int ui_bot_match(char *bot1_path, char *bot2_path, int nb_matches)
+{
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    if (!init_sdl(&window, &renderer))
+        return 1;
+
+    load_textures(renderer);
+    GameEnvironement env;
+
+    for (int match = 0; match < nb_matches; match++)
+    {
+        env = init_game_environment(start_pos, renderer);
+        bot_game_loop(env);
+        cleanup_env(env);
+    }
+    cleanup_ui(renderer, window);
     return 0;
 }

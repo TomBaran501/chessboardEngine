@@ -30,3 +30,5 @@ typedef struct
 #pragma once
 
 int ui_main_loop(char *startpos, int color_ai);
+
+int ui_bot_match(char *bot1_path, char *bot2_path, int nb_matches);
