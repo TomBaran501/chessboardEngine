@@ -3,6 +3,7 @@
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
 #define SQUARE_SIZE (WINDOW_WIDTH / 8)
+#define NB_MATCH 50
 
 SDL_Color BEIGE = {238, 238, 210, 255};      // clair
 SDL_Color DARK_BEIGE = {208, 185, 170, 255}; // foncé
@@ -427,6 +428,15 @@ static bool handle_SDL_events(int color_ai, int *clicked_square, GameEnvironemen
     return true;
 }
 
+static int load_positions(OpeningBook *book)
+{
+    srand(time(NULL));
+
+    if (load_opening_book("assets/starting_fen/starting_pos.txt", book) != 0)
+        return 1;
+    return 0;
+}
+
 static int get_and_play_best_move(int color, GameEnvironement env)
 {
     char best_move[MOVE_SIZE];
@@ -554,7 +564,7 @@ int ui_main_loop(char *startpos, int color_ai)
 }
 
 // --- Fonction pour les matchs entre bots ---
-int ui_bot_match(char *bot1_path, char *bot2_path, int nb_matches)
+int ui_bot_match(char *bot1_path, char *bot2_path)
 {
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
@@ -563,10 +573,13 @@ int ui_bot_match(char *bot1_path, char *bot2_path, int nb_matches)
 
     load_textures(renderer);
     GameEnvironement env;
+    OpeningBook book;
+    load_positions(&book);
 
-    for (int match = 0; match < nb_matches; match++)
+    for (int match = 0; match < NB_MATCH / 2; match++)
     {
-        env = init_game_environment(start_pos, renderer);
+        char *startpos = get_random_opening(&book);
+        env = init_game_environment(startpos, renderer);
         bot_game_loop(env);
         cleanup_env(env);
     }

@@ -5,6 +5,7 @@
 #include "ai/ai.h"
 #include "ai/evaluation.h"
 #include "api_connector.h"
+#include "tools/openings.h"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -31,4 +32,4 @@ typedef struct
 
 int ui_main_loop(char *startpos, int color_ai);
 
-int ui_bot_match(char *bot1_path, char *bot2_path, int nb_matches);
+int ui_bot_match(char *bot1_path, char *bot2_path);

@@ -95,7 +95,7 @@ void run_bot_match(char buffer[MAX_CMD])
         return;
     }
 
-    ui_bot_match("", "", 2);
+    ui_bot_match("", "");
 }
 
 int main(void)
