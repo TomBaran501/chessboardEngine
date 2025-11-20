@@ -460,16 +460,36 @@ static void try_connect_bot(BotConnector *bot1, char *bot_path)
         printf("erreur de connection au bot...\n");
 }
 
-static void init_bots(BotConnector *bot1, BotConnector *bot2, int color_ai)
+static void init_bot(BotConnector *bot, char *bot_path, char *fen)
+{
+    try_connect_bot(bot, bot_path);
+    if (bot_set_fen(bot, fen) != 0)
+        printf("Connexion error with the bot...  function bot_set_fen\n");
+}
+
+static void init_bots(GameEnvironement env, int color_ai)
 {
     if (color_ai == -1)
         return;
 
+    char fen[256];
+    return_fen_code(env.board, fen);
+
     if (color_ai == WHITE || color_ai == 2)
-        try_connect_bot(bot1, bot1_path);
+        init_bot(env.bot1, bot1_path, fen);
 
     if (color_ai == BLACK || color_ai == 2)
-        try_connect_bot(bot2, bot2_path);
+        init_bot(env.bot2, bot2_path, fen);
+}
+
+static void print_winner(GameEnvironement env)
+{
+    if (*env.GameState == DRAW)
+        printf("Tie\n\n\n");
+    if (env.board->white_to_play)
+        printf("Black wins\n\n\n");
+    else
+        printf("White wins\n\n\n");
 }
 
 static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_Window *window)
@@ -479,20 +499,22 @@ static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_
     bool running = true;
 
     ui_refresh_board(env);
-    init_bots(env.bot1, env.bot2, color_ai);
+    init_bots(env, color_ai);
 
     while (running)
     {
-        if (*env.GameState != PLAYING)
-            running = false;
-
-        while (SDL_PollEvent(env.event))
+        while (SDL_PollEvent(env.event) && *env.GameState == PLAYING)
         {
             if (!handle_SDL_events(color_ai, &clicked_square, env))
                 running = false;
         }
-        handle_ai_turn(color_ai, env);
+        if (*env.GameState == PLAYING)
+            handle_ai_turn(color_ai, env);
+
+        if (*env.GameState != PLAYING)
+            running = false;
     }
+    print_winner(env);
     cleanup_ui(renderer, window, env);
 }
 
