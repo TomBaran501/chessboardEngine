@@ -3,7 +3,7 @@
 #define WINDOW_WIDTH 1000
 #define WINDOW_HEIGHT 1000
 #define SQUARE_SIZE (WINDOW_WIDTH / 8)
-#define NB_MATCH 50
+#define NB_MATCH 4
 
 SDL_Color BEIGE = {238, 238, 210, 255};      // clair
 SDL_Color DARK_BEIGE = {208, 185, 170, 255}; // foncé
@@ -498,11 +498,21 @@ static void init_bots(GameEnvironement env, int color_ai)
 static void print_winner(GameEnvironement env)
 {
     if (*env.GameState == DRAW)
-        printf("Tie\n\n\n");
+        printf("Tie\n");
     else if (env.board->white_to_play)
-        printf("Black wins\n\n\n");
+        printf("Black wins\n");
     else
-        printf("White wins\n\n\n");
+        printf("White wins\n");
+}
+
+static int return_winner(GameEnvironement env)
+{
+    if (*env.GameState == DRAW)
+        return 0;
+    if (env.board->white_to_play)
+        return 1;
+    else
+        return -1;
 }
 
 static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_Window *window)
@@ -532,7 +542,7 @@ static void game_loop(char *startpos, SDL_Renderer *renderer, int color_ai, SDL_
     cleanup_ui(renderer, window);
 }
 
-static void bot_game_loop(GameEnvironement env)
+static int bot_game_loop(GameEnvironement env)
 {
     bool running = true;
 
@@ -547,6 +557,7 @@ static void bot_game_loop(GameEnvironement env)
             running = false;
     }
     print_winner(env);
+    return return_winner(env);
 }
 
 // --- Boucle principale du jeu ---
@@ -575,14 +586,16 @@ int ui_bot_match(char *bot1_path, char *bot2_path)
     GameEnvironement env;
     OpeningBook book;
     load_positions(&book);
+    int score = 0;
 
     for (int match = 0; match < NB_MATCH / 2; match++)
     {
         char *startpos = get_random_opening(&book);
         env = init_game_environment(startpos, renderer);
-        bot_game_loop(env);
+        score += bot_game_loop(env);
         cleanup_env(env);
     }
     cleanup_ui(renderer, window);
+    printf("Score: %i\n", score);
     return 0;
 }

@@ -30,7 +30,7 @@ int run_test(Chessboard *board, int profondeur)
     return total;
 }
 
-int perft_test(char *fen, int profondeur)
+int tperft_test(char *fen, int profondeur)
 {
     Chessboard board;
     int nbcoups;
@@ -41,51 +41,51 @@ int perft_test(char *fen, int profondeur)
     return nbcoups;
 }
 
-Test(perft_result_pos_initiale, perft_test)
+Test(perft_result_pos_initiale, tperft_test)
 {
     printf("PERFTS TEST ... \n");
-    cr_assert_eq(perft_test(start_pos, 1), 20, " test à la profondeur 1");
-    cr_assert_eq(perft_test(start_pos, 2), 400, " test à la profondeur 2");
-    cr_assert_eq(perft_test(start_pos, 3), 8902, " test à la profondeur 3");
-    cr_assert_eq(perft_test(start_pos, 4), 197281, " test à la profondeur 4");
-    cr_assert_eq(perft_test(start_pos, 5), 4865609, " test à la profondeur 5");
-    //cr_assert_eq(perft_test(start_pos, 6), 119060324, " test à la profondeur 6");
+    cr_assert_eq(tperft_test(start_pos, 1), 20, " test à la profondeur 1");
+    cr_assert_eq(tperft_test(start_pos, 2), 400, " test à la profondeur 2");
+    cr_assert_eq(tperft_test(start_pos, 3), 8902, " test à la profondeur 3");
+    cr_assert_eq(tperft_test(start_pos, 4), 197281, " test à la profondeur 4");
+    cr_assert_eq(tperft_test(start_pos, 5), 4865609, " test à la profondeur 5");
+    //cr_assert_eq(tperft_test(start_pos, 6), 119060324, " test à la profondeur 6");
 }
 
-Test(perft_pos2, perft_test)
+Test(perft_pos2, tperft_test)
 {
-    cr_assert_eq(perft_test(pos2, 1), 48, " test à la profondeur 1");
-    cr_assert_eq(perft_test(pos2, 2), 2039, " test à la profondeur 2");
-    cr_assert_eq(perft_test(pos2, 3), 97862, " test à la profondeur 3");
-    cr_assert_eq(perft_test(pos2, 4), 4085603, " test à la profondeur 4");
-    //cr_assert_eq(perft_test(pos2, 5), 193690690, " test à la profondeur 5");
+    cr_assert_eq(tperft_test(pos2, 1), 48, " test à la profondeur 1");
+    cr_assert_eq(tperft_test(pos2, 2), 2039, " test à la profondeur 2");
+    cr_assert_eq(tperft_test(pos2, 3), 97862, " test à la profondeur 3");
+    cr_assert_eq(tperft_test(pos2, 4), 4085603, " test à la profondeur 4");
+    //cr_assert_eq(tperft_test(pos2, 5), 193690690, " test à la profondeur 5");
 }
 
-Test(perft_pos3, perft_test)
+Test(perft_pos3, tperft_test)
 {
-    cr_assert_eq(perft_test(pos3, 1), 14, " test à la profondeur 1");
-    cr_assert_eq(perft_test(pos3, 2), 191, " test à la profondeur 2");
-    cr_assert_eq(perft_test(pos3, 3), 2812, " test à la profondeur 3");
-    cr_assert_eq(perft_test(pos3, 4), 43238, " test à la profondeur 4");
-    cr_assert_eq(perft_test(pos3, 5), 674624, " test à la profondeur 5");
-    cr_assert_eq(perft_test(pos3, 6), 11030083, " test à la profondeur 6");
-    // cr_assert_eq(perft_test(pos3, 7), 178633661, " test à la profondeur 7");
+    cr_assert_eq(tperft_test(pos3, 1), 14, " test à la profondeur 1");
+    cr_assert_eq(tperft_test(pos3, 2), 191, " test à la profondeur 2");
+    cr_assert_eq(tperft_test(pos3, 3), 2812, " test à la profondeur 3");
+    cr_assert_eq(tperft_test(pos3, 4), 43238, " test à la profondeur 4");
+    cr_assert_eq(tperft_test(pos3, 5), 674624, " test à la profondeur 5");
+    cr_assert_eq(tperft_test(pos3, 6), 11030083, " test à la profondeur 6");
+    // cr_assert_eq(tperft_test(pos3, 7), 178633661, " test à la profondeur 7");
 }
 
-Test(perft_pos4, perft_test)
+Test(perft_pos4, tperft_test)
 {
-    cr_assert_eq(perft_test(pos4, 1), 6, " test à la profondeur 1");
-    cr_assert_eq(perft_test(pos4, 2), 264, " test à la profondeur 2");
-    cr_assert_eq(perft_test(pos4, 3), 9467, " test à la profondeur 3");
-    cr_assert_eq(perft_test(pos4, 4), 422333, " test à la profondeur 4");
-    //cr_assert_eq(perft_test(pos4, 5), 15833292, " test à la profondeur 5");
+    cr_assert_eq(tperft_test(pos4, 1), 6, " test à la profondeur 1");
+    cr_assert_eq(tperft_test(pos4, 2), 264, " test à la profondeur 2");
+    cr_assert_eq(tperft_test(pos4, 3), 9467, " test à la profondeur 3");
+    cr_assert_eq(tperft_test(pos4, 4), 422333, " test à la profondeur 4");
+    //cr_assert_eq(tperft_test(pos4, 5), 15833292, " test à la profondeur 5");
 }
 
-Test(perft_pos6, perft_test)
+Test(perft_pos6, tperft_test)
 {
-    cr_assert_eq(perft_test(pos6, 1), 46, " test à la profondeur 1");
-    cr_assert_eq(perft_test(pos6, 2), 2079, " test à la profondeur 2");
-    cr_assert_eq(perft_test(pos6, 3), 89890, " test à la profondeur 3");
-    cr_assert_eq(perft_test(pos6, 4), 3894594, " test à la profondeur 4");
-    //cr_assert_eq(perft_test(pos6, 5), 164075551, " test à la profondeur 5");
+    cr_assert_eq(tperft_test(pos6, 1), 46, " test à la profondeur 1");
+    cr_assert_eq(tperft_test(pos6, 2), 2079, " test à la profondeur 2");
+    cr_assert_eq(tperft_test(pos6, 3), 89890, " test à la profondeur 3");
+    cr_assert_eq(tperft_test(pos6, 4), 3894594, " test à la profondeur 4");
+    //cr_assert_eq(tperft_test(pos6, 5), 164075551, " test à la profondeur 5");
 }
