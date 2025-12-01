@@ -24,18 +24,10 @@ typedef struct
     int score; // score obtenu à la profondeur précédente
 } ScoredMove;
 
-#pragma once
-typedef struct
-{
-    Chessboard board;
-    Move move;
-    int score;
-    unsigned long long nbmoves;
-    int true_depth;
-    unsigned long long nb_cuts_tt;
-} ThreadTask;
 
 /// @brief Run the search for the best move in the position
 /// @param board
 /// @return
 Move get_best_move(Chessboard board);
+
+int alpha_beta(Chessboard *board, int depth, int alpha, int beta, int is_maximizing);

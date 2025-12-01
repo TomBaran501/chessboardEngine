@@ -461,7 +461,7 @@ static void handle_ai_turn(int color_ai, GameEnvironement env)
             printf("Erreur de communication avec le bot\n");
 
         ui_refresh_board(env);
-        SDL_Delay(50);
+        SDL_Delay(10);
     }
 
     SDL_Delay(10);
