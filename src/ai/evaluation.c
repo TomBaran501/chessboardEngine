@@ -37,8 +37,6 @@ static int count_material(Chessboard *board, int *total_value)
     return score;
 }
 
-
-
 static int evaluate_position_ally_pieces(Chessboard *board)
 {
     int score = 0;
@@ -125,11 +123,11 @@ int evaluate_position(Chessboard *board)
     int total_value = 0;
     int score = count_material(board, &total_value);
 
-    score += evaluate_position_ally_pieces(board);
     if (board->white_to_play)
-        return score;
+        score += evaluate_position_ally_pieces(board);
     else
-        return -1 * score;
+        score -= evaluate_position_ally_pieces(board);
+    return score;
 }
 
 static int lire_piece_square_table(const char *nom_fichier, int valeurs[BOARD_SIZE])
@@ -180,6 +178,28 @@ int initialize_tables()
         return -1;
     if (lire_piece_square_table("assets/squares_pieces_tables/king.txt", king_table) != 0)
         return -1;
+
+    return 0;
+}
+
+int get_piece_value(Chessboard *board, int square)
+{
+    uint64_t pos = create_1bit_board(square);
+
+    if (board->pawns & pos)
+        return PAWN_VALUE;
+
+    if (board->queens & pos)
+        return QUEEN_VALUE;
+
+    if (board->rooks & pos)
+        return ROOK_VALUE;
+
+    if (board->bishops & pos)
+        return BISHOP_VALUE;
+
+    if (board->knights & pos)
+        return KNIGHT_VALUE;
 
     return 0;
 }

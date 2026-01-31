@@ -5,7 +5,6 @@
 #define BISHOP_VALUE 330
 #define ROOK_VALUE 500
 #define QUEEN_VALUE 900
-#define MAX_VALUE 6400 // Valeur des pieces dans la position initiale
 
 extern int pawn_table[BOARD_SIZE];
 extern int knight_table[BOARD_SIZE];
@@ -22,3 +21,9 @@ int evaluate_position(Chessboard *board);
 /// @brief Initialise les tables de position valeur utilisés pour l'évaluation des cases
 /// @return
 int initialize_tables(void);
+
+/// @brief Renvoie la valeur de la piece sur la case 'square'
+/// @param board 
+/// @param square 
+/// @return 
+int get_piece_value(Chessboard *board, int square);

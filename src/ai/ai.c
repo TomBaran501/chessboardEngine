@@ -1,136 +1,165 @@
 #include "ai.h"
 #include <limits.h>
 
-// Fonction pour trier les coups dans l'ordre décroissant
-static void sort_moves(ScoredMove *scored_moves, int nbmoves)
+SearchInfo info = {0};
+
+// ==================== Move Ordering ====================
+
+static int get_move_score(Chessboard *board, const Move *move)
 {
-    for (int i = 0; i < nbmoves - 1; i++)
-    {
-        for (int j = 0; j < nbmoves - i - 1; j++)
-        {
-            if (scored_moves[j].score < scored_moves[j + 1].score)
-            {
-                ScoredMove temp = scored_moves[j];
-                scored_moves[j] = scored_moves[j + 1];
-                scored_moves[j + 1] = temp;
-            }
-        }
-    }
+    int score = 0;
+
+    if (move->promotion_flag == PROMOTION_Q)
+        score += QUEEN_VALUE;
+
+    if (move->piece_taken != NONE)
+        score += get_piece_value(board, move->to) * 10 - get_piece_value(board, move->from);
+
+    return score;
 }
 
-static int get_ending_score(Chessboard *board, int is_maximizing)
+static void order_moves(Chessboard *board, Move *moves, int count)
 {
-    if (is_check(board))
-        return is_maximizing ? INT_MIN + 1 : INT_MAX - 1; // Checkmate
-    return 0;                                             // Stalemate
-}
-
-/* Helper: simple in-place partition to put capture moves first (heuristic d'ordre) */
-static void order_moves_by_capture(Move moves[], int nbmoves)
-{
-    if (nbmoves <= 1)
-        return;
-    int i = 0, j = nbmoves - 1;
-    while (i < j)
+    for (int i = 1; i < count; i++)
     {
-        while (i < nbmoves && moves[i].piece_taken)
-            i++;
-        while (j >= 0 && !moves[j].piece_taken)
-            j--;
-        if (i < j)
+        Move temp = moves[i];
+        int temp_score = get_move_score(board, &moves[i]);
+        int j = i - 1;
+
+        while (j >= 0 && get_move_score(board, &moves[j]) < temp_score)
         {
-            Move tmp = moves[i];
-            moves[i] = moves[j];
-            moves[j] = tmp;
-            i++;
+            moves[j + 1] = moves[j];
             j--;
         }
+        moves[j + 1] = temp;
     }
 }
 
-static int alpha_beta_search(Chessboard *board, int depth, int alpha, int beta, int is_maximizing, int nbmoves, Move *legal_moves)
+// ==================== Quiescence Search ====================
+
+static int quiescence_search(Chessboard *board, int alpha, int beta)
 {
-    if (is_maximizing)
-    {
-        int best = INT_MIN;
-        for (int i = 0; i < nbmoves; ++i)
-        {
-            play_move(board, legal_moves[i]);
-            int val = alpha_beta(board, depth - 1, alpha, beta, !is_maximizing);
-            unplay_move(board, legal_moves[i]);
+    int stand_pat = evaluate_position(board);
+    info.nb_positions_evaluated += 1;
 
-            if (val > best)
-                best = val;
-            if (val > alpha)
-                alpha = val;
-            if (alpha >= beta)
-                break; /* beta-cutoff */
-        }
-        return best;
-    }
-    else
-    {
-        int best = INT_MAX;
-        for (int i = 0; i < nbmoves; ++i)
-        {
-            play_move(board, legal_moves[i]);
-            int val = alpha_beta(board, depth - 1, alpha, beta, !is_maximizing);
-            unplay_move(board, legal_moves[i]);
+    if (stand_pat >= beta)
+        return beta;
+    if (stand_pat > alpha)
+        alpha = stand_pat;
 
-            if (val < best)
-                best = val;
-            if (val < beta)
-                beta = val;
-            if (beta <= alpha)
-                break; /* alpha-cutoff */
-        }
-        return best;
+    Move moves[250];
+    int count = get_all_legal_moves(board, moves);
+
+    for (int i = 0; i < count; i++)
+    {
+        if (moves[i].piece_taken == NONE)
+            continue;
+
+        play_move(board, moves[i]);
+        int score = -quiescence_search(board, -beta, -alpha);
+        unplay_move(board, moves[i]);
+
+        if (score >= beta)
+            return beta;
+        if (score > alpha)
+            alpha = score;
     }
+
+    return alpha;
 }
 
-int alpha_beta(Chessboard *board, int depth, int alpha, int beta, int is_maximizing)
+// ==================== Alpha-Beta ====================
+
+int alpha_beta(Chessboard *board, int depth, int alpha, int beta)
 {
     if (depth == 0)
-        return evaluate_position(board);
+        return quiescence_search(board, alpha, beta);
 
+    Move moves[250];
+    int count = get_all_legal_moves(board, moves);
+
+    if (count == 0)
+    {
+        if (is_check(board))
+            return board->white_to_play ? -MAT + depth : MAT - depth;
+        return 0;
+    }
+
+    order_moves(board, moves, count);
+
+    int best = -INFINI;
+
+    for (int i = 0; i < count; i++)
+    {
+        play_move(board, moves[i]);
+        int score = -alpha_beta(board, depth - 1, -beta, -alpha);
+        unplay_move(board, moves[i]);
+
+        if (score > best)
+            best = score;
+        if (score > alpha)
+            alpha = score;
+
+        if (beta <= alpha)
+            break;
+    }
+
+    return best;
+}
+
+// ==================== Root Search ====================
+
+static int get_score(Chessboard *board, Move move, int depth)
+{
+    play_move(board, move);
+    int score;
+    
+    if (depth == 0)
+        score = evaluate_position(board); // Potentiellement quiecence search au lieu de evaluate mais probablement pas d'impact
+    else
+        score = -alpha_beta(board, depth - 1, -INFINI, INFINI);
+    
+    unplay_move(board, move);
+    return score;
+}
+
+static ScoredMove search_best_move(Chessboard *board, int depth)
+{
     Move legal_moves[250];
     int nbmoves = get_all_legal_moves(board, legal_moves);
-
+    
     if (nbmoves == 0)
-        return get_ending_score(board, is_maximizing);
-
-    order_moves_by_capture(legal_moves, nbmoves);
-
-    return alpha_beta_search(board, depth, alpha, beta, is_maximizing, nbmoves, legal_moves);
-}
-
-static int get_score(Chessboard board, Move move, int depth)
-{
-    play_move(&board, move);
-    if (depth == 0)
-        return evaluate_position(&board);
-
-    return alpha_beta(&board, depth - 1, INT_MIN, INT_MAX, !board.white_to_play);
-}
-
-static ScoredMove search_best_move(Chessboard board, int depth)
-{
-    Move legal_moves[250];
-    int nbmoves = get_all_legal_moves(&board, legal_moves);
-    ScoredMove scored_moves[nbmoves];
-
-    for (int i = 0; i < nbmoves; i++)
     {
-        scored_moves[i].move = legal_moves[i];
-        scored_moves[i].score = get_score(board, legal_moves[i], depth);
+        ScoredMove result = {0};
+        return result;
     }
 
-    sort_moves(scored_moves, nbmoves);
-    return scored_moves[0];
+    ScoredMove best;
+    best.move = legal_moves[0];
+    best.score = get_score(board, legal_moves[0], depth);
+
+    for (int i = 1; i < nbmoves; i++)
+    {
+        int score = get_score(board, legal_moves[i], depth);
+
+        //print_move(&legal_moves[i]);
+        //printf("score: %i\n", score);
+
+        if (score > best.score)
+        {
+            best.score = score;
+            best.move = legal_moves[i];
+        }
+    }
+
+    //printf("nb_pos: %i, score: %i\n", info.nb_positions_evaluated, best.score);
+
+    return best;
 }
 
 Move get_best_move(Chessboard board)
 {
-    ScoredMove best_move = search_best_move(board, 3);
+    info.nb_positions_evaluated = 0;
+    ScoredMove best_move = search_best_move(&board, 3);
     return best_move.move;
 }

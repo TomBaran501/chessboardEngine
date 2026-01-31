@@ -52,6 +52,7 @@ int main(void)
 
     char fen[FEN_SIZE] = STARTPOS;
     Chessboard board;
+    initialize_tables();
     init_chessboard_from_fen(&board, fen);
 
     char command[CMD_SIZE];

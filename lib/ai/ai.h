@@ -13,8 +13,8 @@
 #include <stdint.h>
 #include <errno.h>
 
-#define INFINI 1000000000
-#define MAT 900000000
+#define MAT 900000
+#define INFINI 100000000
 #define MAX_DEPTH 50
 
 #pragma once
@@ -24,10 +24,16 @@ typedef struct
     int score; // score obtenu à la profondeur précédente
 } ScoredMove;
 
+typedef struct
+{
+    int depth;
+    int nb_positions_evaluated;
+} SearchInfo;
+
+
 
 /// @brief Run the search for the best move in the position
 /// @param board
 /// @return
 Move get_best_move(Chessboard board);
 
-int alpha_beta(Chessboard *board, int depth, int alpha, int beta, int is_maximizing);
