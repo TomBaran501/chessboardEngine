@@ -61,11 +61,14 @@ Sets the board state (FEN position) in the bot’s internal memory.
 ---
 
 ### `int bot_get_best_move(BotConnector *bot, char *move_str)`
-Requests the bot’s best move for the current position.
+### `int bot_get_best_move(BotConnector *bot, char *move_str, char *log_msg, int timeout_sec)`
+Requests the bot’s best move for the current position and optionally retrieves a log message.
 
 **Parameters:**
 - `bot`: Active bot connection.
 - `move_str`: Output buffer to store the move (e.g., `"e2e4"`).
+- `log_msg`: Output buffer to store an optional log message from the bot (can be empty).
+- `timeout_sec`: Timeout (in seconds) waiting for the main move response.
 
 **Returns:**
 - `0` if a valid move was received.

@@ -12,7 +12,7 @@
 int is_bot_killed(char *command, size_t size)
 {
     if (fgets(command, size, stdin) == NULL)
-        return 1; 
+        return 1;
 
     command[strcspn(command, "\r\n")] = '\0';
 
@@ -26,9 +26,11 @@ void handle_commands(const char *command, Chessboard *board, char *fen)
 {
     if (strncmp(command, "get move", 8) == 0)
     {
-        Move best_move = get_best_move(*board);
-        print_move(&best_move);
+        SearchInfo infos = get_best_move(*board);
+        print_move(&infos.move.move);
         printf("\n");
+        if (infos.log[0] != '\0')
+            printf("LOG:%s\n", infos.log);
         fflush(stdout);
     }
     else if (strncmp(command, "fen ", 4) == 0)

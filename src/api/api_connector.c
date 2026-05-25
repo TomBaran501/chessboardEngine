@@ -1,27 +1,64 @@
 #include "api_connector.h"
+#include <sys/time.h>
 
 static int read_line_timeout(FILE *stream, char *buf, int size, int timeout_sec)
 {
     int fd = fileno(stream);
-    fd_set readfds;
-    struct timeval tv;
+    int total = 0;
+    struct timeval start, now, tv;
 
-    FD_ZERO(&readfds);
-    FD_SET(fd, &readfds);
+    if (size <= 1)
+        return -3;
 
-    tv.tv_sec = timeout_sec;
-    tv.tv_usec = 0;
+    if (gettimeofday(&start, NULL) == -1)
+        return -1;
 
-    int ret = select(fd + 1, &readfds, NULL, NULL, &tv);
-    if (ret == -1)
-        return -1; // erreur
-    if (ret == 0)
-        return -2; // timeout
+    while (total < size - 1)
+    {
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(fd, &readfds);
 
-    if (fgets(buf, size, stream) == NULL)
-        return -3; // EOF ou erreur
+        if (gettimeofday(&now, NULL) == -1)
+            return -1;
 
-    buf[strcspn(buf, "\r\n")] = '\0';
+        long elapsed = now.tv_sec - start.tv_sec;
+        if (elapsed >= timeout_sec)
+            return -2;
+
+        tv.tv_sec = timeout_sec - elapsed;
+        tv.tv_usec = 0;
+
+        int ret = select(fd + 1, &readfds, NULL, NULL, &tv);
+        if (ret == -1)
+        {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        if (ret == 0)
+            return -2;
+
+        char c;
+        ssize_t n = read(fd, &c, 1);
+        if (n == 0)
+            return -3;
+        if (n == -1)
+        {
+            if (errno == EINTR)
+                continue;
+            return -3;
+        }
+
+        buf[total++] = c;
+        if (c == '\n')
+            break;
+    }
+
+    buf[total] = '\0';
+    while (total > 0 && (buf[total - 1] == '\n' || buf[total - 1] == '\r'))
+        buf[--total] = '\0';
+
     return 0;
 }
 
@@ -86,7 +123,7 @@ int bot_set_fen(BotConnector *bot, const char *fen)
     return 0;
 }
 
-int bot_get_best_move(BotConnector *bot, char *move_str)
+int bot_get_best_move(BotConnector *bot, char *move_str, char *log_msg, int timeout_sec)
 {
     if (!is_bot_connected(bot))
         return -1;
@@ -94,10 +131,29 @@ int bot_get_best_move(BotConnector *bot, char *move_str)
     fprintf(bot->bot_in, "get move\n");
     fflush(bot->bot_in);
 
-    int res = read_line_timeout(bot->bot_out, move_str, MOVE_SIZE, 3); // timeout 3s
-
+    int res = read_line_timeout(bot->bot_out, move_str, MOVE_SIZE, timeout_sec);
     if (res != 0)
         return -1;
+
+    // Essayer de lire un message de log optionnel provenant du bot.
+    // On laisse un petit timeout pour le log afin de ne pas bloquer.
+    if (log_msg)
+    {
+            int res2 = read_line_timeout(bot->bot_out, log_msg, LOG_SIZE, 1);
+            if (res2 != 0)
+                log_msg[0] = '\0';
+            else
+            {
+                // Attendu: ligne de log préfixée par "LOG:". Si présent, on strip le préfixe.
+                if (strncmp(log_msg, "LOG:", 4) == 0)
+                {
+                    char *p = log_msg + 4;
+                    while (*p == ' ')
+                        p++;
+                    memmove(log_msg, p, strlen(p) + 1);
+                }
+            }
+    }
 
     return 0;
 }

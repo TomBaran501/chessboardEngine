@@ -1,8 +1,6 @@
 #include "ai.h"
 #include <limits.h>
 
-SearchInfo info = {0};
-
 // ==================== Move Ordering ====================
 
 static int get_move_score(Chessboard *board, const Move *move)
@@ -37,10 +35,10 @@ static void order_moves(Chessboard *board, Move *moves, int count)
 
 // ==================== Quiescence Search ====================
 
-static int quiescence_search(Chessboard *board, int alpha, int beta)
+static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo *info)
 {
     int stand_pat = evaluate_position(board);
-    info.nb_positions_evaluated += 1;
+    info->nb_positions_evaluated += 1;
 
     if (stand_pat >= beta)
         return beta;
@@ -56,7 +54,7 @@ static int quiescence_search(Chessboard *board, int alpha, int beta)
             continue;
 
         play_move(board, moves[i]);
-        int score = -quiescence_search(board, -beta, -alpha);
+        int score = -quiescence_search(board, -beta, -alpha, info);
         unplay_move(board, moves[i]);
 
         if (score >= beta)
@@ -70,10 +68,10 @@ static int quiescence_search(Chessboard *board, int alpha, int beta)
 
 // ==================== Alpha-Beta ====================
 
-int alpha_beta(Chessboard *board, int depth, int alpha, int beta)
+int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *info)
 {
     if (depth == 0)
-        return quiescence_search(board, alpha, beta);
+        return quiescence_search(board, alpha, beta, info);
 
     Move moves[250];
     int count = get_all_legal_moves(board, moves);
@@ -92,7 +90,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta)
     for (int i = 0; i < count; i++)
     {
         play_move(board, moves[i]);
-        int score = -alpha_beta(board, depth - 1, -beta, -alpha);
+        int score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
         unplay_move(board, moves[i]);
 
         if (score > best)
@@ -109,7 +107,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta)
 
 // ==================== Root Search ====================
 
-static int get_score(Chessboard *board, Move move, int depth)
+static int get_score(Chessboard *board, Move move, int depth, SearchInfo *info)
 {
     play_move(board, move);
     int score;
@@ -117,13 +115,13 @@ static int get_score(Chessboard *board, Move move, int depth)
     if (depth == 0)
         score = evaluate_position(board); // Potentiellement quiecence search au lieu de evaluate mais probablement pas d'impact
     else
-        score = -alpha_beta(board, depth - 1, -INFINI, INFINI);
+        score = -alpha_beta(board, depth - 1, -INFINI, INFINI, info);
     
     unplay_move(board, move);
     return score;
 }
 
-static ScoredMove search_best_move(Chessboard *board, int depth)
+static ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *info)
 {
     Move legal_moves[250];
     int nbmoves = get_all_legal_moves(board, legal_moves);
@@ -136,14 +134,11 @@ static ScoredMove search_best_move(Chessboard *board, int depth)
 
     ScoredMove best;
     best.move = legal_moves[0];
-    best.score = get_score(board, legal_moves[0], depth);
+    best.score = get_score(board, legal_moves[0], depth, info);
 
     for (int i = 1; i < nbmoves; i++)
     {
-        int score = get_score(board, legal_moves[i], depth);
-
-        //print_move(&legal_moves[i]);
-        //printf("score: %i\n", score);
+        int score = get_score(board, legal_moves[i], depth, info);
 
         if (score > best.score)
         {
@@ -152,14 +147,17 @@ static ScoredMove search_best_move(Chessboard *board, int depth)
         }
     }
 
-    //printf("nb_pos: %i, score: %i\n", info.nb_positions_evaluated, best.score);
-
     return best;
 }
 
-Move get_best_move(Chessboard board)
+SearchInfo get_best_move(Chessboard board)
 {
+    SearchInfo info = {0};
     info.nb_positions_evaluated = 0;
-    ScoredMove best_move = search_best_move(&board, 3);
-    return best_move.move;
+    info.depth = 3;
+    info.log[0] = '\0';
+
+    info.move = search_best_move(&board, info.depth, &info);
+    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d evaluations=%d", info.depth, info.nb_positions_evaluated);
+    return info;
 }

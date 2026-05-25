@@ -16,6 +16,7 @@
 #define MAT 900000
 #define INFINI 100000000
 #define MAX_DEPTH 50
+#define SEARCH_LOG_SIZE 256
 
 #pragma once
 typedef struct
@@ -28,12 +29,12 @@ typedef struct
 {
     int depth;
     int nb_positions_evaluated;
+    char log[SEARCH_LOG_SIZE];
+    ScoredMove move;
+
 } SearchInfo;
-
-
 
 /// @brief Run the search for the best move in the position
 /// @param board
 /// @return
-Move get_best_move(Chessboard board);
-
+SearchInfo get_best_move(Chessboard board);

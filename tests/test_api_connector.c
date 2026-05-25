@@ -15,12 +15,13 @@ Test(api_connector, connect_and_get_move)
     printf("TEST BOT API (STARTPOS)... \n");
     BotConnector bot;
     char best_move[6];
+    char log_msg[LOG_SIZE];
 
     int res = bot_connect(&bot, bot_path);
     cr_assert_eq(res, 0, "Échec de la connexion au bot");
 
     // Demande du meilleur coup
-    res = bot_get_best_move(&bot, best_move);
+    res = bot_get_best_move(&bot, best_move, log_msg, 3);
     cr_assert_eq(res, 0, "bot_get_best_move a échoué");
     cr_assert_neq(best_move[0], '\0', "Le bot n’a pas renvoyé de coup");
 
@@ -37,6 +38,7 @@ Test(api_connector, reconnect_after_disconnect)
 {
     BotConnector bot;
     char best_move[MOVE_SIZE];
+    char log_msg[LOG_SIZE];
 
     int res = bot_connect(&bot, bot_path);
     cr_assert_eq(res, 0);
@@ -46,7 +48,7 @@ Test(api_connector, reconnect_after_disconnect)
     res = bot_connect(&bot, bot_path);
     cr_assert_eq(res, 0);
 
-    res = bot_get_best_move(&bot, best_move);
+    res = bot_get_best_move(&bot, best_move, log_msg, 3);
     cr_assert_eq(res, 0);
     cr_assert_neq(best_move[0], '\0', "Le bot n’a pas renvoyé de coup");
 
