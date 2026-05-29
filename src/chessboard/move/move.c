@@ -163,7 +163,7 @@ void print_move(Move *move)
 {
     char f[3];
     char t[3];
-    char p = ' ';
+    char p = '\0';
     index_to_square(move->from, f);
     index_to_square(move->to, t);
 
@@ -176,14 +176,17 @@ void print_move(Move *move)
     if (move->promotion_flag == PROMOTION_R)
         p = 'r';
 
-    printf("%s%s%c", f, t, p);
+    if (p != '\0')
+        printf("%s%s%c", f, t, p);
+    else
+        printf("%s%s", f, t);
 }
 
 void move_to_string(Move *move, char *move_string)
 {
     char f[3];
     char t[3];
-    char p = ' ';
+    char p = '\0';
     index_to_square(move->from, f);
     index_to_square(move->to, t);
 

@@ -71,15 +71,19 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
 int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *info)
 {
     if (depth == 0)
-        return quiescence_search(board, alpha, beta, info);
-
+    {
+        //return quiescence_search(board, alpha, beta, info);
+        info->nb_positions_evaluated += 1;
+        return evaluate_position(board);
+    }
+        
     Move moves[250];
     int count = get_all_legal_moves(board, moves);
 
     if (count == 0)
     {
         if (is_check(board))
-            return board->white_to_play ? -MAT + depth : MAT - depth;
+            return  -MAT - depth;
         return 0;
     }
 
@@ -154,10 +158,10 @@ SearchInfo get_best_move(Chessboard board)
 {
     SearchInfo info = {0};
     info.nb_positions_evaluated = 0;
-    info.depth = 3;
+    info.depth = 4;
     info.log[0] = '\0';
 
     info.move = search_best_move(&board, info.depth, &info);
-    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d evaluations=%d", info.depth, info.nb_positions_evaluated);
+    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d ", info.depth, info.nb_positions_evaluated, info.move.score);
     return info;
 }

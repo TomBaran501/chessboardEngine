@@ -29,8 +29,11 @@ BOT_OBJ_FILES := $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(BOT_SRC_FILES:.c=.o)
 TEST_SRC_FILES := $(shell find $(TEST_DIR) -name "*.c")
 SRC_CHESSBOARD := $(shell find $(SRC_DIR)/chessboard -name "*.c")
 SRC_API := $(shell find $(SRC_DIR)/api -name "*.c")
+SRC_AI := $(shell find $(SRC_DIR)/ai -name "*.c")
+
 TEST_OBJ_FILES := $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRC_CHESSBOARD:.c=.o)) \
-                  $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRC_API:.c=.o))
+                  $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRC_API:.c=.o)) \
+                  $(patsubst $(SRC_DIR)/%, $(BUILD_DIR)/%, $(SRC_AI:.c=.o))
 
 # === RÈGLES ===
 all: $(EXEC)
