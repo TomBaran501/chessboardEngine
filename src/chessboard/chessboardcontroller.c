@@ -166,7 +166,7 @@ bool is_check(Chessboard *board)
     return false;
 }
 
-static void add_flags(Move *move, Chessboard *chessboard)
+void add_flags(Move *move, Chessboard *chessboard)
 {
     handle_pawn_flags(move, chessboard);
     handle_roque_flags(move, chessboard);

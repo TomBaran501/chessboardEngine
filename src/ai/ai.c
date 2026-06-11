@@ -1,6 +1,7 @@
 #include "ai.h"
 #include <limits.h>
 
+#define MAX_LEGAL_MOVES 250
 // ==================== Move Ordering ====================
 
 static int get_move_score(Chessboard *board, const Move *move)
@@ -45,7 +46,7 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
     if (stand_pat > alpha)
         alpha = stand_pat;
 
-    Move moves[250];
+    Move moves[MAX_LEGAL_MOVES];
     int count = get_all_legal_moves(board, moves);
 
     for (int i = 0; i < count; i++)
@@ -72,12 +73,10 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
 {
     if (depth == 0)
     {
-        //return quiescence_search(board, alpha, beta, info);
-        info->nb_positions_evaluated += 1;
-        return evaluate_position(board);
+        return quiescence_search(board, alpha, beta, info);
     }
         
-    Move moves[250];
+    Move moves[MAX_LEGAL_MOVES];
     int count = get_all_legal_moves(board, moves);
 
     if (count == 0)
@@ -111,44 +110,80 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
 
 // ==================== Root Search ====================
 
-static int get_score(Chessboard *board, Move move, int depth, SearchInfo *info)
+static void sort_scored_moves(ScoredMove *moves, int count)
+{
+    for (int i = 1; i < count; i++)
+    {
+        ScoredMove temp = moves[i];
+        int j = i - 1;
+
+        while (j >= 0 && moves[j].score < temp.score)
+        {
+            moves[j + 1] = moves[j];
+            j--;
+        }
+
+        moves[j + 1] = temp;
+    }
+}
+
+static int score_move(Chessboard *board, Move move, int depth, int alpha, int beta, SearchInfo *info)
 {
     play_move(board, move);
+
     int score;
-    
+
     if (depth == 0)
-        score = evaluate_position(board); // Potentiellement quiecence search au lieu de evaluate mais probablement pas d'impact
+        score = -evaluate_position(board);
     else
-        score = -alpha_beta(board, depth - 1, -INFINI, INFINI, info);
-    
+        score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
+
     unplay_move(board, move);
     return score;
 }
 
 static ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *info)
 {
-    Move legal_moves[250];
+    Move legal_moves[MAX_LEGAL_MOVES];
     int nbmoves = get_all_legal_moves(board, legal_moves);
-    
+
     if (nbmoves == 0)
     {
         ScoredMove result = {0};
         return result;
     }
 
-    ScoredMove best;
-    best.move = legal_moves[0];
-    best.score = get_score(board, legal_moves[0], depth, info);
+    order_moves(board, legal_moves, nbmoves);
 
-    for (int i = 1; i < nbmoves; i++)
+    ScoredMove scored_moves[MAX_LEGAL_MOVES];
+    for (int i = 0; i < nbmoves; i++)
     {
-        int score = get_score(board, legal_moves[i], depth, info);
+        scored_moves[i].move = legal_moves[i];
+        scored_moves[i].score = 0;
+    }
 
-        if (score > best.score)
+    ScoredMove best = {0};
+
+    for (int current_depth = 1; current_depth <= depth; current_depth++)
+    {
+        if (current_depth > 1)
+            sort_scored_moves(scored_moves, nbmoves);
+
+        int alpha = -INFINI;
+
+        for (int i = 0; i < nbmoves; i++)
         {
-            best.score = score;
-            best.move = legal_moves[i];
+            int score = score_move(board, scored_moves[i].move, current_depth, alpha, INFINI, info);
+            scored_moves[i].score = score;
+
+            if (score > alpha)
+                alpha = score;
         }
+
+        sort_scored_moves(scored_moves, nbmoves);
+
+        best.move = scored_moves[0].move;
+        best.score = scored_moves[0].score;
     }
 
     return best;
@@ -157,9 +192,7 @@ static ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *inf
 SearchInfo get_best_move(Chessboard board)
 {
     SearchInfo info = {0};
-    info.nb_positions_evaluated = 0;
     info.depth = 4;
-    info.log[0] = '\0';
 
     info.move = search_best_move(&board, info.depth, &info);
     snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d ", info.depth, info.nb_positions_evaluated, info.move.score);

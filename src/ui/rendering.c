@@ -450,6 +450,8 @@ static int get_and_play_best_move(int color, GameEnvironement env)
         printf("Bot log: %s\n", bot_log);
 
     Move move = get_move(best_move);
+    add_flags(&move, env.board);
+    
     play_move_all(env, move);
 
     return 0;

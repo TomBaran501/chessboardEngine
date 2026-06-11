@@ -55,3 +55,9 @@ int get_all_captures(Chessboard *chessboard, Move captures[250]);
 /// @param move
 /// @return
 int play_move_check_gameover(Chessboard *board, Move move);
+
+
+/// @brief Ajoute les infos d'un coup
+/// @param move 
+/// @param chessboard 
+void add_flags(Move *move, Chessboard *chessboard);
