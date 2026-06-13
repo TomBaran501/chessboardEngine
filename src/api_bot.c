@@ -42,7 +42,7 @@ void handle_commands(const char *command, Chessboard *board, char *fen)
     else if (strncmp(command, "move ", 5) == 0)
     {
         char move[10] = {0};
-        strncpy(move, command + 5, 4);
+        strncpy(move, command + 5, 5);
         Move m = get_move(move);
         try_play_move(board, &m);
     }
