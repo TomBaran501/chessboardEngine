@@ -1,6 +1,6 @@
 # === VARIABLES ===
 CC := gcc
-CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L
+CFLAGS := -Wall -Wextra -std=c11 -D_POSIX_C_SOURCE=200809L -pthread
 
 SRC_DIR := src
 INCLUDE_DIR := lib
@@ -12,7 +12,7 @@ EXEC := $(BUILD_DIR)/chess
 BOT_EXEC := $(BOT_DIR)/bot_v0
 TEST_EXEC := $(BUILD_DIR)/test_runner
 
-LDLIBS := `sdl2-config --libs` -lSDL2_image
+LDLIBS := `sdl2-config --libs` -lSDL2_image -pthread
 
 # === INCLUDES ===
 INCLUDE_PATHS := $(shell find $(INCLUDE_DIR) -type d)
@@ -48,7 +48,7 @@ $(EXEC): $(OBJ_FILES)
 $(BOT_EXEC): $(BOT_OBJ_FILES)
 	@mkdir -p $(BOT_DIR)
 	@echo "🔗 Linking bot executable..."
-	$(CC) $(BOT_OBJ_FILES) -o $@
+	$(CC) $(BOT_OBJ_FILES) -o $@ -pthread
 
 # Règle générique pour compiler tous les .c
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
@@ -69,7 +69,7 @@ bot: $(BOT_EXEC)
 test: $(TEST_OBJ_FILES) $(TEST_SRC_FILES)
 	@mkdir -p $(BUILD_DIR)
 	@echo "🧪 Compiling tests..."
-	$(CC) $(CFLAGS) $(INCLUDES) $(TEST_OBJ_FILES) $(TEST_SRC_FILES) -o $(TEST_EXEC) -lcriterion
+	$(CC) $(CFLAGS) $(INCLUDES) $(TEST_OBJ_FILES) $(TEST_SRC_FILES) -o $(TEST_EXEC) -lcriterion -pthread
 	@echo "🚀 Running tests..."
 	ulimit -s unlimited && ./$(TEST_EXEC) --jobs 1
 

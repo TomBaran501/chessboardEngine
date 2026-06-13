@@ -145,7 +145,11 @@ ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *info)
     int nbmoves = get_all_legal_moves(board, legal_moves);
 
     if (nbmoves == 0)
-        return; // A revoir après multi-threading
+    {
+        ScoredMove terminal = {0};
+        terminal.score = get_game_state(board, depth);
+        return terminal;
+    }
 
     order_moves(board, legal_moves, nbmoves);
 

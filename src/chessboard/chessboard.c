@@ -328,6 +328,13 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
 void copy_chessboard(const Chessboard *src, Chessboard *dst)
 {
     memcpy(dst, src, sizeof(Chessboard));
+
+    if (src->hashtable != NULL)
+    {
+        dst->hashtable = malloc(sizeof(RepetitionTable));
+        if (dst->hashtable != NULL)
+            memcpy(dst->hashtable, src->hashtable, sizeof(RepetitionTable));
+    }
 }
 
 bool compare_chessboard(const Chessboard *a, const Chessboard *b)
