@@ -6,8 +6,28 @@ int bishop_table[BOARD_SIZE];
 int rook_table[BOARD_SIZE];
 int queen_table[BOARD_SIZE];
 int king_table[BOARD_SIZE];
+int king_table_endgame[BOARD_SIZE];
 
 int ally_color;
+
+static int distance_between_kings(Chessboard *board)
+{
+    int white_king = get_lsb_index(board->kings & board->occupied_white);
+    int black_king = get_lsb_index(board->kings & board->occupied_black);
+
+    int horizontal_dst = abs(white_king % 8 - black_king % 8);
+    int vertical_dst = abs(white_king / 8 - black_king / 8);
+
+    return horizontal_dst + vertical_dst;
+}
+
+int center_distance(int square)
+{
+    int file = square % 8;
+    int rank = square / 8;
+
+    return abs(file - 3) + abs(rank - 3);
+}
 
 static int mirror_square(int index)
 {
@@ -17,24 +37,48 @@ static int mirror_square(int index)
     return (7 - rank) * 8 + file;
 }
 
-static int count_material(Chessboard *board)
+static int count_pieces_material(Chessboard *board)
 {
-    int white_material = 0;
-    int black_material = 0;
+    int material = count_bits(board->knights) * KNIGHT_VALUE;
+    material += count_bits(board->bishops) * BISHOP_VALUE;
+    material += count_bits(board->rooks) * ROOK_VALUE;
+    material += count_bits(board->queens) * QUEEN_VALUE;
 
-    white_material += count_bits(board->pawns & board->occupied_white) * PAWN_VALUE;
-    white_material += count_bits(board->knights & board->occupied_white) * KNIGHT_VALUE;
-    white_material += count_bits(board->bishops & board->occupied_white) * BISHOP_VALUE;
-    white_material += count_bits(board->rooks & board->occupied_white) * ROOK_VALUE;
-    white_material += count_bits(board->queens & board->occupied_white) * QUEEN_VALUE;
+    return material;
+}
 
-    black_material += count_bits(board->pawns & board->occupied_black) * PAWN_VALUE;
-    black_material += count_bits(board->knights & board->occupied_black) * KNIGHT_VALUE;
-    black_material += count_bits(board->bishops & board->occupied_black) * BISHOP_VALUE;
-    black_material += count_bits(board->rooks & board->occupied_black) * ROOK_VALUE;
-    black_material += count_bits(board->queens & board->occupied_black) * QUEEN_VALUE;
+static int count_material(Chessboard *board, int color)
+{
+    uint64_t pieces = color == WHITE ? board->occupied_white : board->occupied_black;
 
-    return white_material - black_material;
+    int material = count_bits(board->pawns & pieces) * PAWN_VALUE;
+    material += count_bits(board->knights & pieces) * KNIGHT_VALUE;
+    material += count_bits(board->bishops & pieces) * BISHOP_VALUE;
+    material += count_bits(board->rooks & pieces) * ROOK_VALUE;
+    material += count_bits(board->queens & pieces) * QUEEN_VALUE;
+
+    return material;
+}
+
+static int evaluate_position_ally_pieces_endgame(Chessboard *board)
+{
+    int score = 0;
+
+    uint64_t bit;
+    int index;
+
+    bit = board->kings;
+    while (bit)
+    {
+        index = __builtin_ctzll(bit);
+        if (board->occupied_white & (1ULL << index))
+            score += king_table_endgame[index];
+        else
+            score -= king_table_endgame[mirror_square(index)];
+        bit &= bit - 1;
+    }
+
+    return score;
 }
 
 static int evaluate_position_ally_pieces(Chessboard *board)
@@ -114,10 +158,28 @@ static int evaluate_position_ally_pieces(Chessboard *board)
     return score;
 }
 
+int evaluate_king_safety(Chessboard *board, int white_material, int black_material)
+{
+    if (abs(white_material - black_material) < ROOK_VALUE)
+        return 0;
+
+    uint64_t week_king = white_material > black_material ? board->kings & board->occupied_black : board->kings & board->occupied_white;
+    
+    int score = (14 - distance_between_kings(board)) * 4;
+    score += center_distance(get_lsb_index(week_king)) * 10;
+
+    return white_material > black_material ? score : -score;
+}
+
 int evaluate_position(Chessboard *board)
 {
-    int score = count_material(board);
-    score += evaluate_position_ally_pieces(board);
+    int white_material = count_material(board, WHITE);
+    int black_material = count_material(board, BLACK);
+    int score = white_material - black_material;
+    int value_pieces = count_pieces_material(board);
+
+    score += (evaluate_position_ally_pieces(board) * value_pieces + evaluate_position_ally_pieces_endgame(board) * (VALUE_PIECES_START - value_pieces)) / VALUE_PIECES_START;
+    score += evaluate_king_safety(board, white_material, black_material);
 
     if (!board->white_to_play)
         score = -score;
@@ -172,6 +234,8 @@ int initialize_tables()
     if (lire_piece_square_table("assets/squares_pieces_tables/queen.txt", queen_table) != 0)
         return -1;
     if (lire_piece_square_table("assets/squares_pieces_tables/king.txt", king_table) != 0)
+        return -1;
+    if (lire_piece_square_table("assets/squares_pieces_tables/king_endgame.txt", king_table_endgame) != 0)
         return -1;
 
     return 0;

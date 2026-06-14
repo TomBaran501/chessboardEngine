@@ -225,8 +225,6 @@ int get_legal_moves(int piecePos, Chessboard *chessboard, Move piece_moves[250])
 
     int nbmoves = count_bits(attacks);
 
-    
-
     for (int m = 0; m < nbmoves; m++)
     {
         Move move;
@@ -509,19 +507,27 @@ inline void unplay_move(Chessboard *board, Move move)
     pop_position(board->hashtable);
 }
 
+int play_move_check_is_three_fold_repetition(Chessboard *board, Move move)
+{
+    play_move(board, move);
+    if (is_threefold_repetition(board->hashtable, compute_hash(board)))
+        return DRAW;
+    return PLAYING;
+}
+
 int play_move_check_gameover(Chessboard *board, Move move)
 {
     play_move(board, move);
 
     if (is_threefold_repetition(board->hashtable, compute_hash(board)))
         return DRAW;
-    
+
     Move moves[250];
     if (get_all_legal_moves(board, moves) != 0)
         return PLAYING;
-    
+
     if (is_check(board))
         return WIN;
-    
+
     return DRAW;
 }

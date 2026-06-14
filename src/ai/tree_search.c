@@ -1,5 +1,10 @@
 #include "tree_search.h"
 
+static bool search_should_stop(const SearchInfo *info)
+{
+    return info != NULL && info->stop_search != NULL && atomic_load(info->stop_search);
+}
+
 // ==================== Helper Functions ====================
 
 /// @brief On regarde en premier les captures et les promotions, car il y a de fortes chances que ce soit le meilleur coup.
@@ -22,15 +27,18 @@ static int get_game_state(Chessboard *board, int depth)
     return 0;
 }
 
-static void order_moves(Chessboard *board, Move *moves, int count)
+static void order_moves(Chessboard *board, Move *moves, int count, SearchInfo *info)
 {
     for (int i = 1; i < count; i++)
     {
+        if (search_should_stop(info))
+            return;
+
         Move temp = moves[i];
         int temp_score = get_move_score(board, &moves[i]);
         int j = i - 1;
 
-        while (j >= 0 && get_move_score(board, &moves[j]) < temp_score)
+        while (j >= 0 && !search_should_stop(info) && get_move_score(board, &moves[j]) < temp_score)
         {
             moves[j + 1] = moves[j];
             j--;
@@ -47,6 +55,9 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
     int stand_pat = evaluate_position(board);
     info->nb_positions_evaluated += 1;
 
+    if (search_should_stop(info))
+        return stand_pat;
+
     if (stand_pat >= beta)
         return beta;
     if (stand_pat > alpha)
@@ -57,6 +68,9 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
 
     for (int i = 0; i < count; i++)
     {
+        if (search_should_stop(info))
+            break;
+
         if (moves[i].piece_taken == NONE)
             continue;
 
@@ -75,6 +89,9 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
 
 int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *info)
 {
+    if (search_should_stop(info))
+        return evaluate_position(board);
+
     if (depth == 0)
         return quiescence_search(board, alpha, beta, info);
 
@@ -84,13 +101,20 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     if (count == 0)
         return get_game_state(board, depth);
 
-    order_moves(board, moves, count);
+    order_moves(board, moves, count, info);
     int best = -INFINI;
 
     for (int i = 0; i < count; i++)
     {
-        play_move(board, moves[i]);
-        int score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
+        if (search_should_stop(info))
+            break;
+
+        int score;
+        int gamestate = play_move_check_is_three_fold_repetition(board, moves[i]);
+        if (gamestate == DRAW)
+            score = 0;
+        else
+            score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
         unplay_move(board, moves[i]);
 
         if (score > best)

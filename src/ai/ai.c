@@ -4,12 +4,33 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdatomic.h>
 
 #define SEARCH_TIME_LIMIT_MS 500
 
-static long long elapsed_ms(struct timespec start, struct timespec end)
+typedef struct
 {
-    return (end.tv_sec - start.tv_sec) * 1000LL + (end.tv_nsec - start.tv_nsec) / 1000000LL;
+    atomic_bool *stop_search;
+    int timeout_ms;
+} SearchTimerArgs;
+
+static bool search_should_stop(const SearchInfo *info)
+{
+    return info != NULL && info->stop_search != NULL && atomic_load(info->stop_search);
+}
+
+static void *search_timer_worker(void *arg)
+{
+    SearchTimerArgs *timer_args = (SearchTimerArgs *)arg;
+    struct timespec delay = {
+        .tv_sec = timer_args->timeout_ms / 1000,
+        .tv_nsec = (timer_args->timeout_ms % 1000) * 1000000L,
+    };
+
+    nanosleep(&delay, NULL);
+    atomic_store(timer_args->stop_search, true);
+
+    return NULL;
 }
 
 static bool allocate_thread_resources(int nbmoves, pthread_t **threads, SearchThreadArgs **args)
@@ -46,6 +67,7 @@ static ScoredMove create_terminal_score(int depth)
 static ScoredMove evaluate_root_move(Chessboard *board, Move move, int depth, SearchInfo *info)
 {
     SearchInfo local_info = {0};
+    local_info.stop_search = info->stop_search;
 
     play_move(board, move);
     ScoredMove result = {0};
@@ -61,6 +83,7 @@ static void *search_best_move_worker(void *arg)
 {
     SearchThreadArgs *args = (SearchThreadArgs *)arg;
     SearchInfo local_info = {0};
+    local_info.stop_search = args->stop_search;
 
     play_move(&args->board, args->move);
     args->result.score = -alpha_beta(&args->board, args->depth - 1, args->alpha, args->beta, &local_info);
@@ -80,6 +103,9 @@ static ScoredMove evaluate_moves_sequentially(Chessboard *board, ScoredMove *sco
 
     for (int i = 0; i < nbmoves; i++)
     {
+        if (search_should_stop(info))
+            break;
+
         ScoredMove result = evaluate_root_move(board, scored_moves[i].move, depth, info);
         scored_moves[i].score = result.score;
 
@@ -89,7 +115,7 @@ static ScoredMove evaluate_moves_sequentially(Chessboard *board, ScoredMove *sco
     return best;
 }
 
-static void launch_search_threads(Chessboard *board, ScoredMove *scored_moves, int nbmoves, int depth, pthread_t *threads, SearchThreadArgs *args, int alpha, int beta)
+static void launch_search_threads(Chessboard *board, ScoredMove *scored_moves, int nbmoves, int depth, pthread_t *threads, SearchThreadArgs *args, int alpha, int beta, atomic_bool *stop_search)
 {
     for (int i = 0; i < nbmoves; i++)
     {
@@ -101,6 +127,7 @@ static void launch_search_threads(Chessboard *board, ScoredMove *scored_moves, i
         args[i].nb_positions_evaluated = 0;
         args[i].alpha = alpha;
         args[i].beta = beta;
+        args[i].stop_search = stop_search;
 
         pthread_create(&threads[i], NULL, search_best_move_worker, &args[i]);
     }
@@ -125,6 +152,9 @@ static ScoredMove collect_thread_results(int nbmoves, pthread_t *threads, Search
 
 static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *info, int alpha, int beta)
 {
+    if (search_should_stop(info))
+        return create_terminal_score(depth);
+
     Move legal_moves[MAX_LEGAL_MOVES];
     int nbmoves = get_all_legal_moves(board, legal_moves);
 
@@ -143,7 +173,7 @@ static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *
     if (!allocate_thread_resources(nbmoves, &threads, &args))
         return evaluate_moves_sequentially(board, scored_moves, nbmoves, depth, info);
 
-    launch_search_threads(board, scored_moves, nbmoves, depth, threads, args, alpha, beta);
+    launch_search_threads(board, scored_moves, nbmoves, depth, threads, args, alpha, beta, info->stop_search);
 
     ScoredMove best = collect_thread_results(nbmoves, threads, args, scored_moves, info);
 
@@ -158,18 +188,24 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
     ScoredMove best = {0};
     int total_positions = 0;
     int reached_depth = 0;
-    struct timespec start;
-    struct timespec now;
+    atomic_bool stop_search;
+    pthread_t timer_thread;
+    SearchTimerArgs timer_args = {
+        .stop_search = &stop_search,
+        .timeout_ms = SEARCH_TIME_LIMIT_MS,
+    };
 
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    atomic_init(&stop_search, false);
+    info->stop_search = &stop_search;
+
+    pthread_create(&timer_thread, NULL, search_timer_worker, &timer_args);
 
     int alpha = -INFINI;
     int beta = INFINI;
 
     int current_depth = 1;
 
-    while (elapsed_ms(start, now) <= SEARCH_TIME_LIMIT_MS)
+    while (!search_should_stop(info))
     {
         int delta = 50;
         if (current_depth == 1)
@@ -188,9 +224,15 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
         ScoredMove result;
         while (1)
         {
+            if (search_should_stop(info))
+                break;
+
             info->nb_positions_evaluated = 0;
 
             result = search_best_move_mt(board, current_depth, info, alpha, beta);
+
+            if (search_should_stop(info))
+                break;
 
             total_positions += info->nb_positions_evaluated;
             if (result.score <= alpha)
@@ -209,12 +251,17 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
             break;
         }
 
+        if (search_should_stop(info))
+            break;
+
         best = result;
         reached_depth = current_depth;
 
-        clock_gettime(CLOCK_MONOTONIC, &now);
         current_depth++;
     }
+
+    pthread_cancel(timer_thread);
+    pthread_join(timer_thread, NULL);
 
     info->nb_positions_evaluated = total_positions;
     info->depth = reached_depth;

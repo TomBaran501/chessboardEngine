@@ -56,6 +56,8 @@ int get_all_captures(Chessboard *chessboard, Move captures[250]);
 /// @return
 int play_move_check_gameover(Chessboard *board, Move move);
 
+int play_move_check_is_three_fold_repetition(Chessboard *board, Move move);
+
 
 /// @brief Ajoute les infos d'un coup
 /// @param move 

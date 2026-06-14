@@ -3,6 +3,8 @@
 #include "chessboard/chessboardcontroller.h"
 #include "evaluation.h"
 
+#include <stdatomic.h>
+
 #define MAX_LEGAL_MOVES 250
 
 #define MAT 900000
@@ -23,6 +25,7 @@ typedef struct
     int nb_positions_evaluated;
     char log[SEARCH_LOG_SIZE];
     ScoredMove move;
+    atomic_bool *stop_search;
 
 } SearchInfo;
 
