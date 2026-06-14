@@ -27,9 +27,9 @@ typedef struct
 } SearchInfo;
 
 
-/// @brief Renvoie le meileur coup et son évaluation via iterative deepening
+/// @brief Renvoie le meileur coup et son évaluation à une profondeur donnée
 /// @param board 
 /// @param depth 
 /// @param info 
 /// @return
-ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *info);
+int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *info);

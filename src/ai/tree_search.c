@@ -15,15 +15,6 @@ static int get_move_score(Chessboard *board, const Move *move)
     return score;
 }
 
-static void init_scored_move(int nbmoves, ScoredMove scored_moves[250], Move legal_moves[250])
-{
-    for (int i = 0; i < nbmoves; i++)
-    {
-        scored_moves[i].move = legal_moves[i];
-        scored_moves[i].score = 0;
-    }
-}
-
 static int get_game_state(Chessboard *board, int depth)
 {
     if (is_check(board))
@@ -44,23 +35,6 @@ static void order_moves(Chessboard *board, Move *moves, int count)
             moves[j + 1] = moves[j];
             j--;
         }
-        moves[j + 1] = temp;
-    }
-}
-
-static void sort_scored_moves(ScoredMove *moves, int count)
-{
-    for (int i = 1; i < count; i++)
-    {
-        ScoredMove temp = moves[i];
-        int j = i - 1;
-
-        while (j >= 0 && moves[j].score < temp.score)
-        {
-            moves[j + 1] = moves[j];
-            j--;
-        }
-
         moves[j + 1] = temp;
     }
 }
@@ -128,54 +102,5 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
             break;
     }
 
-    return best;
-}
-
-static int score_move_alpha_beta(Chessboard *board, Move move, int depth, int alpha, int beta, SearchInfo *info)
-{
-    play_move(board, move);
-    int score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
-    unplay_move(board, move);
-    return score;
-}
-
-ScoredMove search_best_move(Chessboard *board, int depth, SearchInfo *info)
-{
-    Move legal_moves[MAX_LEGAL_MOVES];
-    int nbmoves = get_all_legal_moves(board, legal_moves);
-
-    if (nbmoves == 0)
-    {
-        ScoredMove terminal = {0};
-        terminal.score = get_game_state(board, depth);
-        return terminal;
-    }
-
-    order_moves(board, legal_moves, nbmoves);
-
-    ScoredMove scored_moves[MAX_LEGAL_MOVES];
-    init_scored_move(nbmoves, scored_moves, legal_moves);
-    ScoredMove best = {0};
-
-    for (int current_depth = 1; current_depth <= depth; current_depth++)
-    {
-        if (current_depth > 1)
-            sort_scored_moves(scored_moves, nbmoves);
-
-        int alpha = -INFINI;
-
-        for (int i = 0; i < nbmoves; i++)
-        {
-            int score = score_move_alpha_beta(board, scored_moves[i].move, current_depth, alpha, INFINI, info);
-            scored_moves[i].score = score;
-
-            if (score > alpha)
-                alpha = score;
-        }
-
-        sort_scored_moves(scored_moves, nbmoves);
-        best.move = scored_moves[0].move;
-        best.score = scored_moves[0].score;
-    }
     return best;
 }

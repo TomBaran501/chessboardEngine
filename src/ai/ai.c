@@ -3,15 +3,59 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
-typedef struct
+#define SEARCH_TIME_LIMIT_MS 500
+
+static long long elapsed_ms(struct timespec start, struct timespec end)
 {
-    Chessboard board;
-    Move move;
-    int depth;
-    ScoredMove result;
-    int nb_positions_evaluated;
-} SearchThreadArgs;
+    return (end.tv_sec - start.tv_sec) * 1000LL + (end.tv_nsec - start.tv_nsec) / 1000000LL;
+}
+
+static bool allocate_thread_resources(int nbmoves, pthread_t **threads, SearchThreadArgs **args)
+{
+    *threads = malloc(sizeof(**threads) * nbmoves);
+    *args = malloc(sizeof(**args) * nbmoves);
+
+    if (*threads == NULL || *args == NULL)
+    {
+        free(*threads);
+        free(*args);
+        return false;
+    }
+
+    return true;
+}
+
+static void init_scored_moves(ScoredMove scored_moves[MAX_LEGAL_MOVES], Move legal_moves[MAX_LEGAL_MOVES], int nbmoves)
+{
+    for (int i = 0; i < nbmoves; i++)
+    {
+        scored_moves[i].move = legal_moves[i];
+        scored_moves[i].score = 0;
+    }
+}
+
+static ScoredMove create_terminal_score(int depth)
+{
+    ScoredMove terminal = {0};
+    terminal.score = -MAT - depth;
+    return terminal;
+}
+
+static ScoredMove evaluate_root_move(Chessboard *board, Move move, int depth, SearchInfo *info)
+{
+    SearchInfo local_info = {0};
+
+    play_move(board, move);
+    ScoredMove result = {0};
+    result.score = -alpha_beta(board, depth - 1, -INFINI, INFINI, &local_info);
+    result.move = move;
+    unplay_move(board, move);
+
+    info->nb_positions_evaluated += local_info.nb_positions_evaluated;
+    return result;
+}
 
 static void *search_best_move_worker(void *arg)
 {
@@ -19,9 +63,7 @@ static void *search_best_move_worker(void *arg)
     SearchInfo local_info = {0};
 
     play_move(&args->board, args->move);
-
-    args->result = search_best_move(&args->board, args->depth - 1, &local_info);
-    args->result.score = -args->result.score;
+    args->result.score = -alpha_beta(&args->board, args->depth - 1, args->alpha, args->beta, &local_info);
     args->result.move = args->move;
     args->nb_positions_evaluated = local_info.nb_positions_evaluated;
 
@@ -31,53 +73,151 @@ static void *search_best_move_worker(void *arg)
     return NULL;
 }
 
-static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *info)
+static ScoredMove evaluate_moves_sequentially(Chessboard *board, ScoredMove *scored_moves, int nbmoves, int depth, SearchInfo *info)
 {
-    Move legal_moves[MAX_LEGAL_MOVES];
-    int nbmoves = get_all_legal_moves(board, legal_moves);
-
-    if (nbmoves <= 1 || depth <= 1)
-        return search_best_move(board, depth, info);
-
-    pthread_t *threads = malloc(sizeof(*threads) * nbmoves);
-    SearchThreadArgs *args = malloc(sizeof(*args) * nbmoves);
-
-    if (threads == NULL || args == NULL)
-    {
-        free(threads);
-        free(args);
-        return search_best_move(board, depth, info);
-    }
-
     ScoredMove best = {0};
     best.score = -INFINI;
-    int total_positions = 0;
 
     for (int i = 0; i < nbmoves; i++)
     {
+        ScoredMove result = evaluate_root_move(board, scored_moves[i].move, depth, info);
+        scored_moves[i].score = result.score;
+
+        if (result.score > best.score)
+            best = result;
+    }
+    return best;
+}
+
+static void launch_search_threads(Chessboard *board, ScoredMove *scored_moves, int nbmoves, int depth, pthread_t *threads, SearchThreadArgs *args, int alpha, int beta)
+{
+    for (int i = 0; i < nbmoves; i++)
+    {
         copy_chessboard(board, &args[i].board);
-        args[i].move = legal_moves[i];
+
+        args[i].move = scored_moves[i].move;
         args[i].depth = depth;
         args[i].result = (ScoredMove){0};
         args[i].nb_positions_evaluated = 0;
+        args[i].alpha = alpha;
+        args[i].beta = beta;
 
         pthread_create(&threads[i], NULL, search_best_move_worker, &args[i]);
     }
+}
+
+static ScoredMove collect_thread_results(int nbmoves, pthread_t *threads, SearchThreadArgs *args, ScoredMove *scored_moves, SearchInfo *info)
+{
+    ScoredMove best = {0};
+    best.score = -INFINI;
 
     for (int i = 0; i < nbmoves; i++)
     {
         pthread_join(threads[i], NULL);
-        total_positions += args[i].nb_positions_evaluated;
+        info->nb_positions_evaluated += args[i].nb_positions_evaluated;
+        scored_moves[i].score = args[i].result.score;
 
         if (args[i].result.score > best.score)
             best = args[i].result;
     }
+    return best;
+}
+
+static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *info, int alpha, int beta)
+{
+    Move legal_moves[MAX_LEGAL_MOVES];
+    int nbmoves = get_all_legal_moves(board, legal_moves);
+
+    if (nbmoves == 0)
+        return create_terminal_score(depth);
+
+    ScoredMove scored_moves[MAX_LEGAL_MOVES];
+    init_scored_moves(scored_moves, legal_moves, nbmoves);
+
+    if (nbmoves <= 1 || depth <= 1)
+        return evaluate_moves_sequentially(board, scored_moves, nbmoves, depth, info);
+
+    pthread_t *threads;
+    SearchThreadArgs *args;
+
+    if (!allocate_thread_resources(nbmoves, &threads, &args))
+        return evaluate_moves_sequentially(board, scored_moves, nbmoves, depth, info);
+
+    launch_search_threads(board, scored_moves, nbmoves, depth, threads, args, alpha, beta);
+
+    ScoredMove best = collect_thread_results(nbmoves, threads, args, scored_moves, info);
 
     free(threads);
     free(args);
 
+    return best;
+}
+
+static ScoredMove search_best_move_iterative_deepening(Chessboard *board, SearchInfo *info)
+{
+    ScoredMove best = {0};
+    int total_positions = 0;
+    int reached_depth = 0;
+    struct timespec start;
+    struct timespec now;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    int alpha = -INFINI;
+    int beta = INFINI;
+
+    int current_depth = 1;
+
+    while (elapsed_ms(start, now) <= SEARCH_TIME_LIMIT_MS)
+    {
+        int delta = 50;
+        if (current_depth == 1)
+        {
+            alpha = -INFINI;
+            beta = INFINI;
+        }
+        else
+        {
+            // alpha = best.score - delta;
+            // beta = best.score + delta;
+            alpha = -INFINI;
+            beta = INFINI; /// pour l'instant je désactive l'apiration window
+        }
+
+        ScoredMove result;
+        while (1)
+        {
+            info->nb_positions_evaluated = 0;
+
+            result = search_best_move_mt(board, current_depth, info, alpha, beta);
+
+            total_positions += info->nb_positions_evaluated;
+            if (result.score <= alpha)
+            {
+                alpha = -INFINI;
+                beta = result.score + delta;
+                continue;
+            }
+
+            if (result.score >= beta)
+            {
+                alpha = result.score - delta;
+                beta = INFINI;
+                continue;
+            }
+            break;
+        }
+
+        best = result;
+        reached_depth = current_depth;
+
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        current_depth++;
+    }
+
     info->nb_positions_evaluated = total_positions;
-    info->depth = depth;
+    info->depth = reached_depth;
 
     return best;
 }
@@ -85,9 +225,8 @@ static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *
 SearchInfo get_best_move(Chessboard board)
 {
     SearchInfo info = {0};
-    info.depth = 4;
 
-    info.move = search_best_move_mt(&board, info.depth, &info);
+    info.move = search_best_move_iterative_deepening(&board, &info);
     snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d ", info.depth, info.nb_positions_evaluated, info.move.score);
     return info;
 }
