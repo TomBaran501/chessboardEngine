@@ -1,5 +1,7 @@
 #include "tree_search.h"
 
+TranspositionTable global_tt;
+
 static bool search_should_stop(const SearchInfo *info)
 {
     return info != NULL && info->stop_search != NULL && atomic_load(info->stop_search);
@@ -92,6 +94,13 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     if (search_should_stop(info))
         return evaluate_position(board);
 
+    int tt_score;
+    Move tt_move;
+    int original_alpha = alpha;
+
+    if (tt_probe(&global_tt, board->hash, depth, alpha, beta, &tt_score, &tt_move))
+        return tt_score;
+
     if (depth == 0)
         return quiescence_search(board, alpha, beta, info);
 
@@ -103,11 +112,17 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
 
     order_moves(board, moves, count, info);
     int best = -INFINI;
+    Move best_move = moves[0];
+    bool search_completed = true;
+    bool evaluated_any_move = false;
 
     for (int i = 0; i < count; i++)
     {
         if (search_should_stop(info))
+        {
+            search_completed = false;
             break;
+        }
 
         int score;
         int gamestate = play_move_check_is_three_fold_repetition(board, moves[i]);
@@ -116,15 +131,36 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
         else
             score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
         unplay_move(board, moves[i]);
+        evaluated_any_move = true;
 
         if (score > best)
+        {
             best = score;
+            best_move = moves[i];
+        }
+
         if (score > alpha)
             alpha = score;
 
         if (beta <= alpha)
             break;
     }
+
+    if (!search_completed)
+    {
+        if (!evaluated_any_move)
+            return evaluate_position(board);
+        return best;
+    }
+
+    TTFlag flag = TT_EXACT;
+
+    if (best <= original_alpha)
+        flag = TT_UPPERBOUND;
+    else if (best >= beta)
+        flag = TT_LOWERBOUND;
+
+    tt_store(&global_tt, board->hash, depth, best, flag, best_move);
 
     return best;
 }

@@ -466,7 +466,8 @@ inline void play_move(Chessboard *board, Move move)
     }
 
     board->white_to_play = !board->white_to_play;
-    add_position(board->hashtable, compute_hash(board));
+    board->hash = compute_hash(board);
+    add_position(board->hashtable, board->hash);
 }
 
 inline void unplay_move(Chessboard *board, Move move)
@@ -505,6 +506,7 @@ inline void unplay_move(Chessboard *board, Move move)
     board->enpassant = move.en_passant;
     board->white_to_play = !board->white_to_play;
     pop_position(board->hashtable);
+    board->hash = compute_hash(board);
 }
 
 int play_move_check_is_three_fold_repetition(Chessboard *board, Move move)

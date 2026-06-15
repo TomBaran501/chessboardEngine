@@ -182,6 +182,30 @@ void print_move(Move *move)
         printf("%s%s", f, t);
 }
 
+void get_string_move(Move *move, char *buffer)
+{
+    char f[3];
+    char t[3];
+    char p = '\0';
+
+    index_to_square(move->from, f);
+    index_to_square(move->to, t);
+
+    if (move->promotion_flag == PROMOTION_B)
+        p = 'b';
+    else if (move->promotion_flag == PROMOTION_N)
+        p = 'n';
+    else if (move->promotion_flag == PROMOTION_Q)
+        p = 'q';
+    else if (move->promotion_flag == PROMOTION_R)
+        p = 'r';
+
+    if (p != '\0')
+        sprintf(buffer, "%s%s%c", f, t, p);
+    else
+        sprintf(buffer, "%s%s", f, t);
+}
+
 void move_to_string(Move *move, char *move_string)
 {
     char f[3];

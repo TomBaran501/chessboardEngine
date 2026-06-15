@@ -35,6 +35,9 @@ void init_chessboard(Chessboard *board)
     board->hashtable = t;
 
     init_zobrist();
+
+    board->hash = compute_hash(board);
+    add_position(board->hashtable, board->hash);
 }
 
 void print_chessboard(const Chessboard *board)
@@ -323,6 +326,9 @@ void init_chessboard_from_fen(Chessboard *board, const char *fen)
 
     init_bitboards();
     init_zobrist();
+
+    board->hash = compute_hash(board);
+    add_position(board->hashtable, board->hash);
 }
 
 void copy_chessboard(const Chessboard *src, Chessboard *dst)

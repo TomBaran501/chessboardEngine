@@ -60,6 +60,8 @@ void initialise_move(Move *move, int from, int to);
 /// @param move
 void print_move(Move *move);
 
+void get_string_move(Move *move, char *buffer);
+
 bool get_long_castle(Move move);
 void set_long_castle(Move *move, bool value);
 

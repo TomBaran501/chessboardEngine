@@ -9,6 +9,7 @@
 
 #include "bitboard.h"
 #include "masks.h"
+#include "hashtables/hash_table.h"
 
 typedef struct RepetitionTable RepetitionTable;
 
@@ -31,6 +32,7 @@ typedef struct Chessboard
     int white_to_play;
 
     RepetitionTable *hashtable;
+    ZobristKey hash;
 
 } Chessboard;
 

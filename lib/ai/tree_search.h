@@ -2,6 +2,7 @@
 #include "chessboard/move/move.h"
 #include "chessboard/chessboardcontroller.h"
 #include "evaluation.h"
+#include "transposition_table.h"
 
 #include <stdatomic.h>
 
@@ -28,6 +29,8 @@ typedef struct
     atomic_bool *stop_search;
 
 } SearchInfo;
+
+extern TranspositionTable global_tt;
 
 
 /// @brief Renvoie le meileur coup et son évaluation à une profondeur donnée

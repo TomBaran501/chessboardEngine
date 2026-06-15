@@ -3,6 +3,7 @@
 #include "chessboard/chessboardcontroller.h"
 #include "chessboard/chessboard.h"
 #include "ai/ai.h"
+#include "ai/tree_search.h"
 
 #define STARTPOS "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -55,6 +56,7 @@ int main(void)
     char fen[FEN_SIZE] = STARTPOS;
     Chessboard board;
     initialize_tables();
+    tt_init(&global_tt);
     init_chessboard_from_fen(&board, fen);
 
     char command[CMD_SIZE];

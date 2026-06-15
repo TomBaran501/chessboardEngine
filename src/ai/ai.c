@@ -183,81 +183,99 @@ static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *
     return best;
 }
 
+static void configure_search_window(int depth, ScoredMove best, int *alpha, int *beta)
+{
+    int delta = 50;
+
+    if (depth == 1)
+    {
+        *alpha = -INFINI;
+        *beta = INFINI;
+        return;
+    }
+
+    // Aspiration window temporairement désactivée.
+    *alpha = -INFINI;
+    *beta = INFINI;
+
+    // Version future :
+    // *alpha = best.score - delta;
+    // *beta = best.score + delta;
+}
+
+static bool adjust_search_window(ScoredMove result, int delta, int *alpha, int *beta)
+{
+    if (result.score <= *alpha)
+    {
+        *alpha = -INFINI;
+        *beta = result.score + delta;
+        return true;
+    }
+
+    if (result.score >= *beta)
+    {
+        *alpha = result.score - delta;
+        *beta = INFINI;
+        return true;
+    }
+    return false;
+}
+
+static bool search_depth(Chessboard *board, int depth, SearchInfo *info, int *total_positions, int alpha, int beta, ScoredMove *result)
+{
+    const int delta = 50;
+
+    while (1)
+    {
+        if (search_should_stop(info))
+            return false;
+
+        info->nb_positions_evaluated = 0;
+        *result = search_best_move_mt(board, depth, info, alpha, beta);
+
+        if (search_should_stop(info))
+            return false;
+
+        *total_positions += info->nb_positions_evaluated;
+
+        if (!adjust_search_window(*result, delta, &alpha, &beta))
+            return true;
+    }
+}
+
 static ScoredMove search_best_move_iterative_deepening(Chessboard *board, SearchInfo *info)
 {
     ScoredMove best = {0};
+
     int total_positions = 0;
     int reached_depth = 0;
+
     atomic_bool stop_search;
-    pthread_t timer_thread;
+    atomic_init(&stop_search, false);
+
+    info->stop_search = &stop_search;
+
     SearchTimerArgs timer_args = {
         .stop_search = &stop_search,
         .timeout_ms = SEARCH_TIME_LIMIT_MS,
     };
 
-    atomic_init(&stop_search, false);
-    info->stop_search = &stop_search;
-
+    pthread_t timer_thread;
     pthread_create(&timer_thread, NULL, search_timer_worker, &timer_args);
 
-    int alpha = -INFINI;
-    int beta = INFINI;
-
-    int current_depth = 1;
-
-    while (!search_should_stop(info))
+    for (int depth = 1; !search_should_stop(info); depth++)
     {
-        int delta = 50;
-        if (current_depth == 1)
-        {
-            alpha = -INFINI;
-            beta = INFINI;
-        }
-        else
-        {
-            // alpha = best.score - delta;
-            // beta = best.score + delta;
-            alpha = -INFINI;
-            beta = INFINI; /// pour l'instant je désactive l'apiration window
-        }
+        int alpha;
+        int beta;
 
+        configure_search_window(depth, best, &alpha, &beta);
         ScoredMove result;
-        while (1)
-        {
-            if (search_should_stop(info))
-                break;
 
-            info->nb_positions_evaluated = 0;
-
-            result = search_best_move_mt(board, current_depth, info, alpha, beta);
-
-            if (search_should_stop(info))
-                break;
-
-            total_positions += info->nb_positions_evaluated;
-            if (result.score <= alpha)
-            {
-                alpha = -INFINI;
-                beta = result.score + delta;
-                continue;
-            }
-
-            if (result.score >= beta)
-            {
-                alpha = result.score - delta;
-                beta = INFINI;
-                continue;
-            }
-            break;
-        }
-
-        if (search_should_stop(info))
+        if (!search_depth(board, depth, info, &total_positions, alpha, beta, &result))
             break;
 
         best = result;
-        reached_depth = current_depth;
-
-        current_depth++;
+        reached_depth = depth;
     }
 
     pthread_cancel(timer_thread);
@@ -274,6 +292,9 @@ SearchInfo get_best_move(Chessboard board)
     SearchInfo info = {0};
 
     info.move = search_best_move_iterative_deepening(&board, &info);
-    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d ", info.depth, info.nb_positions_evaluated, info.move.score);
+    char move_str[6];
+    get_string_move(&info.move.move, move_str);
+
+    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d move=%s", info.depth, info.nb_positions_evaluated, info.move.score, move_str);
     return info;
 }
