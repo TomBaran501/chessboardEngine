@@ -194,13 +194,8 @@ static void configure_search_window(int depth, ScoredMove best, int *alpha, int 
         return;
     }
 
-    // Aspiration window temporairement désactivée.
-    *alpha = -INFINI;
-    *beta = INFINI;
-
-    // Version future :
-    // *alpha = best.score - delta;
-    // *beta = best.score + delta;
+    *alpha = best.score - delta;
+    *beta = best.score + delta;
 }
 
 static bool adjust_search_window(ScoredMove result, int delta, int *alpha, int *beta)
@@ -223,7 +218,7 @@ static bool adjust_search_window(ScoredMove result, int delta, int *alpha, int *
 
 static bool search_depth(Chessboard *board, int depth, SearchInfo *info, int *total_positions, int alpha, int beta, ScoredMove *result)
 {
-    const int delta = 50;
+    int delta = 40;
 
     while (1)
     {
@@ -240,6 +235,9 @@ static bool search_depth(Chessboard *board, int depth, SearchInfo *info, int *to
 
         if (!adjust_search_window(*result, delta, &alpha, &beta))
             return true;
+        
+        info->nb_researches++;
+        delta *=2;
     }
 }
 
@@ -262,6 +260,8 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
 
     pthread_t timer_thread;
     pthread_create(&timer_thread, NULL, search_timer_worker, &timer_args);
+
+    info->nb_researches = 0;
 
     for (int depth = 1; !search_should_stop(info); depth++)
     {
@@ -294,7 +294,9 @@ SearchInfo get_best_move(Chessboard board)
     info.move = search_best_move_iterative_deepening(&board, &info);
     char move_str[6];
     get_string_move(&info.move.move, move_str);
+    char tt_string[TT_STATS_STRING_SIZE];
+    get_string_stat_tt(tt_string);
 
-    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d move=%s", info.depth, info.nb_positions_evaluated, info.move.score, move_str);
+    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d move=%s reasearches=%d %s", info.depth, info.nb_positions_evaluated, info.move.score, move_str, info.nb_researches, tt_string);
     return info;
 }

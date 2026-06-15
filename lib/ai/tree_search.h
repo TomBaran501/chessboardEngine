@@ -27,6 +27,7 @@ typedef struct
     char log[SEARCH_LOG_SIZE];
     ScoredMove move;
     atomic_bool *stop_search;
+    int nb_researches;
 
 } SearchInfo;
 

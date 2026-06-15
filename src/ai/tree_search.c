@@ -9,17 +9,25 @@ static bool search_should_stop(const SearchInfo *info)
 
 // ==================== Helper Functions ====================
 
-/// @brief On regarde en premier les captures et les promotions, car il y a de fortes chances que ce soit le meilleur coup.
+/// @brief On regarde en premier les captures, les promotions et les meilleurs coups des recherches précédentes, car il y a de fortes chances que ce soit le meilleur coup.
 static int get_move_score(Chessboard *board, const Move *move)
 {
     int score = 0;
+
     if (move->promotion_flag == PROMOTION_Q)
-        score += QUEEN_VALUE;
+        score += QUEEN_VALUE*10;
 
     if (move->piece_taken != NONE)
-        score += get_piece_value(board, move->to) * 10 - get_piece_value(board, move->from);
+        score += get_piece_value(board, move->to) * 10;
 
     return score;
+}
+
+static bool is_tt_move(const Move *move, Move tt_move)
+{
+    return tt_move.from == move->from &&
+           tt_move.to == move->to &&
+           tt_move.promotion_flag == move->promotion_flag;
 }
 
 static int get_game_state(Chessboard *board, int depth)
@@ -29,23 +37,66 @@ static int get_game_state(Chessboard *board, int depth)
     return 0;
 }
 
-static void order_moves(Chessboard *board, Move *moves, int count, SearchInfo *info)
+static void order_moves(Chessboard *board, Move *moves, int count,
+                        SearchInfo *info, Move tt_move)
 {
-    for (int i = 1; i < count; i++)
+    if (count <= 1)
+        return;
+
+    int scores[MAX_LEGAL_MOVES];
+
+    // 1. pré-calc scores (IMPORTANT: évite recalcul multiple)
+    for (int i = 0; i < count; i++)
     {
         if (search_should_stop(info))
             return;
 
-        Move temp = moves[i];
-        int temp_score = get_move_score(board, &moves[i]);
+        if (is_tt_move(&moves[i], tt_move))
+            scores[i] = 1000000;
+
+        else
+            scores[i] = get_move_score(board, &moves[i]);
+
+    }
+
+    // 2. FORCER TT MOVE EN POSITION 0
+    int tt_index = -1;
+    for (int i = 0; i < count; i++)
+    {
+        if (scores[i] == 1000000)
+        {
+            tt_index = i;
+            break;
+        }
+    }
+
+    if (tt_index > 0)
+    {
+        Move tmp = moves[0];
+        moves[0] = moves[tt_index];
+        moves[tt_index] = tmp;
+
+        int stmp = scores[0];
+        scores[0] = scores[tt_index];
+        scores[tt_index] = stmp;
+    }
+
+    // 3. tri simple sur le reste (insertion sort stable mais propre)
+    for (int i = 1; i < count; i++)
+    {
+        Move key_move = moves[i];
+        int key_score = scores[i];
         int j = i - 1;
 
-        while (j >= 0 && !search_should_stop(info) && get_move_score(board, &moves[j]) < temp_score)
+        while (j >= 1 && scores[j] < key_score)
         {
             moves[j + 1] = moves[j];
+            scores[j + 1] = scores[j];
             j--;
         }
-        moves[j + 1] = temp;
+
+        moves[j + 1] = key_move;
+        scores[j + 1] = key_score;
     }
 }
 
@@ -99,7 +150,10 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     int original_alpha = alpha;
 
     if (tt_probe(&global_tt, board->hash, depth, alpha, beta, &tt_score, &tt_move))
+    {
+        tt_stats.cutoffs++;
         return tt_score;
+    }
 
     if (depth == 0)
         return quiescence_search(board, alpha, beta, info);
@@ -110,7 +164,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     if (count == 0)
         return get_game_state(board, depth);
 
-    order_moves(board, moves, count, info);
+    order_moves(board, moves, count, info, tt_move);
     int best = -INFINI;
     Move best_move = moves[0];
     bool search_completed = true;

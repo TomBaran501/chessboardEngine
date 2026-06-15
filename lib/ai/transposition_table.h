@@ -8,6 +8,7 @@
 #include "move.h"
 
 #define TT_SIZE (1 << 20) /* ~1 million entrées */
+#define TT_STATS_STRING_SIZE 128
 
 typedef enum
 {
@@ -35,6 +36,22 @@ typedef struct
     uint64_t size;
 } TranspositionTable;
 
+typedef struct
+{
+    uint64_t probes;
+    uint64_t hits;
+    uint64_t cutoffs;
+
+    uint64_t stores;
+    uint64_t overwrites;
+
+    uint64_t exact_hits;
+    uint64_t lower_hits;
+    uint64_t upper_hits;
+} TTStats;
+
+extern TTStats tt_stats;
+
 void tt_init(TranspositionTable *tt);
 void tt_destroy(TranspositionTable *tt);
 
@@ -56,5 +73,7 @@ bool tt_probe(
     int beta,
     int *score,
     Move *best_move);
+
+void get_string_stat_tt(char *buffer);
 
 #endif
