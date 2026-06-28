@@ -1,13 +1,8 @@
 #include "transposition_table.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-
 TTStats tt_stats = {0};
+uint8_t tt_current_age = 0;
 
-#include <stdio.h>
-#include <string.h>
 
 void get_string_stat_tt(char *buffer)
 {
@@ -29,6 +24,26 @@ void get_string_stat_tt(char *buffer)
              tt_stats.stores,
              tt_stats.overwrites,
              fill_rate * 100.0);
+}
+
+static inline int score_from_tt(int score, int ply)
+{
+    if (score > MAT - 1000)
+        return score - ply;
+
+    if (score < -MAT + 1000)
+        return score + ply;
+
+    return score;
+}
+
+static inline int score_to_tt(int score, int ply)
+{
+    if (score > MAT - 1000)
+        return score + ply + 1;
+    if (score < -MAT + 1000)
+        return score - ply - 1;
+    return score;
 }
 
 static inline uint64_t tt_index(const TranspositionTable *tt, ZobristKey key)
@@ -54,28 +69,27 @@ void tt_clear(TranspositionTable *tt)
     memset(tt->entries, 0, tt->size * sizeof(TTEntry));
 }
 
-void tt_store(TranspositionTable *tt, ZobristKey key, int depth, int score, TTFlag flag, Move best_move)
+void tt_store(TranspositionTable *tt, ZobristKey key, int depth, int ply,
+              int score, TTFlag flag, Move best_move)
 {
     uint64_t idx = tt_index(tt, key);
     TTEntry *entry = &tt->entries[idx];
 
-    if (entry->key != key || depth >= entry->depth) // Suspect
-    {
-        if (entry->key != 0)
-            tt_stats.overwrites++;
-        else
-            tt_stats.stores++;
+    bool is_old = entry->age != tt_current_age;
+    bool same_key = entry->key == key;
 
+    if (!same_key || is_old || depth >= entry->depth)
+    {
         entry->key = key;
         entry->depth = depth;
-        entry->score = score;
+        entry->score = score_to_tt(score, ply);
         entry->flag = flag;
         entry->best_move = best_move;
-        tt_stats.overwrites++;
+        entry->age = tt_current_age;
     }
 }
 
-bool tt_probe(TranspositionTable *tt, ZobristKey key, int depth, int alpha, int beta, int *score, Move *best_move)
+bool tt_probe(TranspositionTable *tt, ZobristKey key, int depth, int ply, int alpha, int beta, int *score, Move *best_move)
 {
     uint64_t idx = tt_index(tt, key);
     TTEntry *entry = &tt->entries[idx];
@@ -85,31 +99,26 @@ bool tt_probe(TranspositionTable *tt, ZobristKey key, int depth, int alpha, int 
         return false;
 
     *best_move = entry->best_move;
-    tt_stats.hits++;
 
-    if (entry->depth < depth)
+    if (entry->age != tt_current_age || entry->depth < depth)
         return false;
+
+    tt_stats.hits++;
+    *score = score_from_tt(entry->score, ply);
 
     switch (entry->flag)
     {
     case TT_EXACT:
-        *score = entry->score;
         return true;
 
     case TT_LOWERBOUND:
-        if (entry->score >= beta)
-        {
-            *score = entry->score;
+        if (*score >= beta)
             return true;
-        }
         break;
 
     case TT_UPPERBOUND:
-        if (entry->score <= alpha)
-        {
-            *score = entry->score;
+        if (*score <= alpha)
             return true;
-        }
         break;
     }
 

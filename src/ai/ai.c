@@ -71,7 +71,7 @@ static ScoredMove evaluate_root_move(Chessboard *board, Move move, int depth, Se
 
     play_move(board, move);
     ScoredMove result = {0};
-    result.score = -alpha_beta(board, depth - 1, -INFINI, INFINI, &local_info);
+    result.score = -alpha_beta(board, depth - 1, 0, -INFINI, INFINI, &local_info);
     result.move = move;
     unplay_move(board, move);
 
@@ -86,7 +86,7 @@ static void *search_best_move_worker(void *arg)
     local_info.stop_search = args->stop_search;
 
     play_move(&args->board, args->move);
-    args->result.score = -alpha_beta(&args->board, args->depth - 1, args->alpha, args->beta, &local_info);
+    args->result.score = -alpha_beta(&args->board, args->depth - 1, 0, args->alpha, args->beta, &local_info);
     args->result.move = args->move;
     args->nb_positions_evaluated = local_info.nb_positions_evaluated;
 
@@ -235,9 +235,9 @@ static bool search_depth(Chessboard *board, int depth, SearchInfo *info, int *to
 
         if (!adjust_search_window(*result, delta, &alpha, &beta))
             return true;
-        
+
         info->nb_researches++;
-        delta *=2;
+        delta *= 2;
     }
 }
 
@@ -283,6 +283,7 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
 
     info->nb_positions_evaluated = total_positions;
     info->depth = reached_depth;
+    tt_current_age ++;
 
     return best;
 }

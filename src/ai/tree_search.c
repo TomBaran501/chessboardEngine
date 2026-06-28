@@ -15,7 +15,7 @@ static int get_move_score(Chessboard *board, const Move *move)
     int score = 0;
 
     if (move->promotion_flag == PROMOTION_Q)
-        score += QUEEN_VALUE*10;
+        score += QUEEN_VALUE * 10;
 
     if (move->piece_taken != NONE)
         score += get_piece_value(board, move->to) * 10;
@@ -30,10 +30,10 @@ static bool is_tt_move(const Move *move, Move tt_move)
            tt_move.promotion_flag == move->promotion_flag;
 }
 
-static int get_game_state(Chessboard *board, int depth)
+static int get_game_state(Chessboard *board, int ply)
 {
     if (is_check(board))
-        return -MAT - depth;
+        return -MAT + ply;
     return 0;
 }
 
@@ -56,7 +56,6 @@ static void order_moves(Chessboard *board, Move *moves, int count,
 
         else
             scores[i] = get_move_score(board, &moves[i]);
-
     }
 
     // 2. FORCER TT MOVE EN POSITION 0
@@ -140,16 +139,16 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
     return alpha;
 }
 
-int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *info)
+int alpha_beta(Chessboard *board, int depth, int ply, int alpha, int beta, SearchInfo *info)
 {
     if (search_should_stop(info))
         return evaluate_position(board);
 
     int tt_score;
-    Move tt_move;
+    Move tt_move = {0};
     int original_alpha = alpha;
 
-    if (tt_probe(&global_tt, board->hash, depth, alpha, beta, &tt_score, &tt_move))
+    if (tt_probe(&global_tt, board->hash, depth, ply,alpha, beta, &tt_score, &tt_move))
     {
         tt_stats.cutoffs++;
         return tt_score;
@@ -162,7 +161,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     int count = get_all_legal_moves(board, moves);
 
     if (count == 0)
-        return get_game_state(board, depth);
+        return get_game_state(board, ply);
 
     order_moves(board, moves, count, info, tt_move);
     int best = -INFINI;
@@ -183,7 +182,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
         if (gamestate == DRAW)
             score = 0;
         else
-            score = -alpha_beta(board, depth - 1, -beta, -alpha, info);
+            score = -alpha_beta(board, depth - 1, ply + 1, -beta, -alpha, info);
         unplay_move(board, moves[i]);
         evaluated_any_move = true;
 
@@ -214,7 +213,7 @@ int alpha_beta(Chessboard *board, int depth, int alpha, int beta, SearchInfo *in
     else if (best >= beta)
         flag = TT_LOWERBOUND;
 
-    tt_store(&global_tt, board->hash, depth, best, flag, best_move);
+    tt_store(&global_tt, board->hash, depth, ply, best, flag, best_move);
 
     return best;
 }
