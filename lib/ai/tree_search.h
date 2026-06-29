@@ -10,7 +10,8 @@
 
 #define INFINI 100000000
 #define MAX_DEPTH 50
-#define SEARCH_LOG_SIZE 256
+#define SEARCH_LOG_SIZE 1125
+#define ROOT_MOVES_LOG_SIZE 512
 
 #pragma once
 typedef struct
@@ -27,6 +28,9 @@ typedef struct
     ScoredMove move;
     atomic_bool *stop_search;
     int nb_researches;
+    ScoredMove root_moves[MAX_LEGAL_MOVES];
+    int nb_root_moves;
+    char root_moves_log[ROOT_MOVES_LOG_SIZE];
 
 } SearchInfo;
 

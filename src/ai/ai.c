@@ -14,6 +14,20 @@ typedef struct
     int timeout_ms;
 } SearchTimerArgs;
 
+static void log_root_moves(ScoredMove *scored_moves, int nbmoves, char *buffer, int buffer_size)
+{
+    int offset = 0;
+    offset += snprintf(buffer + offset, buffer_size - offset, "root_moves: ");
+
+    for (int i = 0; i < nbmoves && offset < buffer_size - 1; i++)
+    {
+        char move_str[6];
+        get_string_move(&scored_moves[i].move, move_str);
+        offset += snprintf(buffer + offset, buffer_size - offset,
+                           "%s=%d ", move_str, scored_moves[i].score);
+    }
+}
+
 static bool search_should_stop(const SearchInfo *info)
 {
     return info != NULL && info->stop_search != NULL && atomic_load(info->stop_search);
@@ -86,7 +100,7 @@ static void *search_best_move_worker(void *arg)
     local_info.stop_search = args->stop_search;
 
     play_move(&args->board, args->move);
-    args->result.score = -alpha_beta(&args->board, args->depth - 1, 0, args->alpha, args->beta, &local_info);
+    args->result.score = -alpha_beta(&args->board, args->depth - 1, 1, args->alpha, args->beta, &local_info);
     args->result.move = args->move;
     args->nb_positions_evaluated = local_info.nb_positions_evaluated;
 
@@ -177,6 +191,9 @@ static ScoredMove search_best_move_mt(Chessboard *board, int depth, SearchInfo *
 
     ScoredMove best = collect_thread_results(nbmoves, threads, args, scored_moves, info);
 
+    memcpy(info->root_moves, scored_moves, nbmoves * sizeof(ScoredMove));
+    info->nb_root_moves = nbmoves;
+
     free(threads);
     free(args);
 
@@ -234,7 +251,10 @@ static bool search_depth(Chessboard *board, int depth, SearchInfo *info, int *to
         *total_positions += info->nb_positions_evaluated;
 
         if (!adjust_search_window(*result, delta, &alpha, &beta))
+        {
+            log_root_moves(info->root_moves, info->nb_root_moves, info->root_moves_log, ROOT_MOVES_LOG_SIZE);
             return true;
+        }
 
         info->nb_researches++;
         delta *= 2;
@@ -283,7 +303,7 @@ static ScoredMove search_best_move_iterative_deepening(Chessboard *board, Search
 
     info->nb_positions_evaluated = total_positions;
     info->depth = reached_depth;
-    tt_current_age ++;
+    tt_current_age++;
 
     return best;
 }
@@ -298,6 +318,9 @@ SearchInfo get_best_move(Chessboard board)
     char tt_string[TT_STATS_STRING_SIZE];
     get_string_stat_tt(tt_string);
 
-    snprintf(info.log, SEARCH_LOG_SIZE, "depth=%d nb_positions=%d evaluation=%d move=%s reasearches=%d %s", info.depth, info.nb_positions_evaluated, info.move.score, move_str, info.nb_researches, tt_string);
+    snprintf(info.log, SEARCH_LOG_SIZE,
+             "depth=%d nb_positions=%d evaluation=%d move=%s reasearches=%d %s %s",
+             info.depth, info.nb_positions_evaluated, info.move.score,
+             move_str, info.nb_researches, tt_string, info.root_moves_log);
     return info;
 }

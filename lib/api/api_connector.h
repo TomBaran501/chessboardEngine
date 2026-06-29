@@ -15,7 +15,7 @@
 #define MOVE_SIZE 10
 #define FEN_SIZE 256
 // Taille maximale pour un message de log renvoyé par le bot
-#define LOG_SIZE 256
+#define LOG_SIZE 1125
 
 typedef struct
 {

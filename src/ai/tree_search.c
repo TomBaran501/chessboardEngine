@@ -101,7 +101,7 @@ static void order_moves(Chessboard *board, Move *moves, int count,
 
 // ==================== Tree-Searches ====================
 
-// Ajouter les echecs à vérifier en plus des captures
+// Ajouter les echecs à vérifier en plus des captures et des promotions
 static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo *info)
 {
     int stand_pat = evaluate_position(board);
@@ -123,7 +123,7 @@ static int quiescence_search(Chessboard *board, int alpha, int beta, SearchInfo 
         if (search_should_stop(info))
             break;
 
-        if (moves[i].piece_taken == NONE)
+        if (moves[i].piece_taken == NONE && moves[i].promotion_flag == NONE)
             continue;
 
         play_move(board, moves[i]);
@@ -148,11 +148,8 @@ int alpha_beta(Chessboard *board, int depth, int ply, int alpha, int beta, Searc
     Move tt_move = {0};
     int original_alpha = alpha;
 
-    if (tt_probe(&global_tt, board->hash, depth, ply,alpha, beta, &tt_score, &tt_move))
-    {
-        tt_stats.cutoffs++;
+    if (tt_probe(&global_tt, board->hash, depth, ply, alpha, beta, &tt_score, &tt_move))
         return tt_score;
-    }
 
     if (depth == 0)
         return quiescence_search(board, alpha, beta, info);

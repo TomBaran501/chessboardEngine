@@ -440,7 +440,7 @@ static int load_positions(OpeningBook *book)
 static int get_and_play_best_move(int color, GameEnvironement env)
 {
     char best_move[MOVE_SIZE];
-    char bot_log[256];
+    char bot_log[LOG_SIZE];
     BotConnector *bot = color == WHITE ? env.bot1 : env.bot2;
 
     if (bot_get_best_move(bot, best_move, bot_log, 3) != 0)
